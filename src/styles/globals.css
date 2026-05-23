@@ -1,0 +1,91 @@
+@import "tailwindcss";
+@import "@fontsource/pretendard/index.css";
+@import "./tokens.css";
+
+@theme {
+  --font-sans: 'Pretendard', system-ui, -apple-system, sans-serif;
+
+  /* Surface colors — wired from tokens */
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-fg);
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-fg);
+  --color-popover: var(--color-surface-raised);
+  --color-popover-foreground: var(--color-fg);
+  --color-border: var(--color-border);
+  --color-input: var(--color-border);
+  --color-ring: var(--color-ring);
+
+  /* Primary = accent */
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: var(--color-accent-fg);
+
+  /* Secondary */
+  --color-secondary: var(--color-surface-raised);
+  --color-secondary-foreground: var(--color-fg);
+
+  /* Muted */
+  --color-muted: var(--color-surface);
+  --color-muted-foreground: var(--color-fg-muted);
+
+  /* Accent — same as primary for shadcn compat */
+  --color-accent: var(--color-surface-raised);
+  --color-accent-foreground: var(--color-fg);
+
+  /* Destructive */
+  --color-destructive: var(--color-danger);
+  --color-destructive-foreground: #ffffff;
+
+  /* Border radius */
+  --radius: var(--radius-md);
+
+  /* Spacing scale */
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+  --spacing-6: var(--space-6);
+  --spacing-8: var(--space-8);
+  --spacing-10: var(--space-10);
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  #root {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
