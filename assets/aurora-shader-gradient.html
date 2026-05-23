@@ -1,0 +1,219 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aurora — Shader Gradient v4</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:#141414;color:#f3efe8;font-family:'Pretendard',system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;gap:12px;padding:22px 16px 40px}
+  .panel{width:min(980px,100%);display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:11px 15px}
+  .panel .grp{font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.42;font-weight:800;margin-right:2px}
+  .lbl{font-size:11px;letter-spacing:.05em;opacity:.62;font-weight:600}
+  .chip{font-size:12px;padding:6px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.05);color:#f3efe8;cursor:pointer;display:flex;align-items:center;gap:7px}
+  .chip .sw{width:22px;height:11px;border-radius:3px}
+  .chip[aria-pressed=true]{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.14)}
+  .btn{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.05);color:#f3efe8;cursor:pointer}
+  .btn[aria-pressed=true]{background:rgba(255,255,255,.16);font-weight:600}
+  .sl{display:flex;align-items:center;gap:8px;font-size:12px}
+  .sl input{width:104px;accent-color:#c75636}
+  .sl b{font-family:'Geist Mono',monospace;font-size:11px;opacity:.55;min-width:30px;text-align:right}
+  .spacer{flex:1}
+  .window{width:min(980px,100%);aspect-ratio:16/10;border-radius:16px;overflow:hidden;position:relative;
+    box-shadow:0 30px 80px -20px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.05)}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .fg{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;color:#fff;text-shadow:0 1px 22px rgba(0,0,0,.25)}
+  .chrome{display:flex;align-items:center;gap:8px;padding:16px 24px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:600;opacity:.82}
+  .meta{padding:0 40px}
+  .meta .kicker{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;opacity:.78;font-weight:700}
+  .meta .title{font-size:clamp(24px,4vw,40px);font-weight:800;letter-spacing:-.02em;margin-top:8px;line-height:1.08}
+  .meta .artist{font-size:15px;opacity:.85;margin-top:7px;font-weight:500}
+  .bar{padding:22px 40px 30px;display:flex;flex-direction:column;gap:14px}
+  .seek{height:4px;border-radius:2px;background:rgba(255,255,255,.28);position:relative}
+  .seek i{position:absolute;left:0;top:0;bottom:0;width:42%;border-radius:2px;background:#fff}
+  .seek i::after{content:"";position:absolute;right:-5px;top:-3px;width:10px;height:10px;border-radius:5px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+  .transport{display:flex;align-items:center;justify-content:center;gap:30px;font-size:20px}
+  .play{width:52px;height:52px;border-radius:26px;background:#fff;color:#111;display:grid;place-items:center;font-size:18px;box-shadow:0 10px 28px rgba(0,0,0,.35)}
+  .err{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:30px;font-size:13px;opacity:.7;z-index:3}
+</style>
+
+<div class="panel">
+  <span class="grp">팔레트</span><div id="palettes" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+  <span class="spacer"></span>
+  <button class="btn" id="reseed">↻ 재생성</button>
+  <button class="btn" id="anim" aria-pressed="true">⏸ 모션</button>
+</div>
+<div class="panel" id="g_form"><span class="grp">형태·명암</span></div>
+<div class="panel" id="g_hl"><span class="grp">하이라이트·방향(자동 이동)</span></div>
+<div class="panel" id="g_motion"><span class="grp">모션</span></div>
+
+<div class="window">
+  <canvas id="gl"></canvas>
+  <div class="err" id="err" style="display:none"></div>
+  <div class="fg">
+    <div class="chrome"><span>◯</span>지금 재생 중 · 잔나비 · 전설<span class="spacer"></span><span style="opacity:.65">큐 · 가사 · 더보기</span></div>
+    <div class="spacer" style="flex:1"></div>
+    <div class="meta"><div class="kicker">트랙 3 / 11 · FLAC · 1411 kbps</div><div class="title">주저하는 연인들을 위해</div><div class="artist">잔나비 · 전설</div></div>
+    <div class="bar"><div class="seek"><i></i></div>
+      <div class="transport"><span>⤮</span><span>⏮</span><span class="play">⏸</span><span>⏭</span><span>↻</span></div></div>
+  </div>
+</div>
+
+<script>
+const PALETTES = [
+  { n:'잔나비·전설', sw:['#6e241a','#c75636','#f6e6cf'], c:['#1c0e0b','#6e241a','#c75636','#e89a63','#f6e6cf'] },
+  { n:'바이올렛', sw:['#3a1f8a','#c63fb0','#ff8f9c'], c:['#140e3a','#3a1f8a','#7b3fd6','#c63fb0','#ff9fae'] },
+  { n:'틸·시안', sw:['#0b3b6e','#1d6fae','#bfeede'], c:['#06203a','#0b3b6e','#1d6fae','#2fb6c0','#cdeede'] },
+  { n:'그린', sw:['#0d3a22','#1f7a3e','#dff09a'], c:['#06140e','#0d3a22','#1f7a3e','#5fbf3a','#e2f0a4'] },
+  { n:'레드·오렌지', sw:['#8a1410','#d8401c','#ffd27a'], c:['#3a0608','#8a1410','#d8401c','#f5832a','#ffd789'] },
+  { n:'파스텔', sw:['#9aa6e2','#e3a6c0','#cfe6f5'], c:['#8a7fc8','#b58fd0','#e3a6c0','#f3cabf','#cfe6f5'] },
+];
+
+const VERT=`#version 300 es
+in vec2 aPos; void main(){ gl_Position=vec4(aPos,0.,1.); }`;
+
+const FRAG=`#version 300 es
+precision highp float;
+out vec4 frag;
+uniform vec2 uRes; uniform float uTime,uSeed,uScale,uTex,uContrast,uLevel,uColorPos,uAngleRange,uHSize,uHInt,uHWander,uSpeed,uMove; uniform int uAnim;
+uniform vec3 c0,c1,c2,c3,c4;
+
+vec3 toLin(vec3 c){ return mix(c/12.92, pow((c+.055)/1.055,vec3(2.4)), step(.04045,c)); }
+vec3 toSRGB(vec3 c){ return mix(c*12.92, 1.055*pow(c,vec3(1./2.4))-.055, step(.0031308,c)); }
+vec3 linToOklab(vec3 c){
+  float l=.4122214708*c.r+.5363325363*c.g+.0514459929*c.b;
+  float m=.2119034982*c.r+.6806995451*c.g+.1073969566*c.b;
+  float s=.0883024619*c.r+.2817188376*c.g+.6299787005*c.b;
+  l=pow(l,1./3.);m=pow(m,1./3.);s=pow(s,1./3.);
+  return vec3(.2104542553*l+.793617785*m-.0040720468*s,1.9779984951*l-2.428592205*m+.4505937099*s,.0259040371*l+.7827717662*m-.808675766*s);}
+vec3 oklabToLin(vec3 c){
+  float l=c.x+.3963377774*c.y+.2158037573*c.z, m=c.x-.1055613458*c.y-.0638541728*c.z, s=c.x-.0894841775*c.y-1.291485548*c.z;
+  l=l*l*l;m=m*m*m;s=s*s*s;
+  return vec3(4.0767416621*l-3.3077115913*m+.2309699292*s,-1.2684380046*l+2.6097574011*m-.3413193965*s,-.0041960863*l-.7034186147*m+1.707614701*s);}
+vec3 ok(vec3 s){ return linToOklab(toLin(s)); }
+
+float hash(vec2 p){ p=fract(p*vec2(123.34,345.45)); p+=dot(p,p+34.345); return fract(p.x*p.y); }
+float vnoise(vec2 p){ vec2 i=floor(p),f=fract(p); vec2 u=f*f*(3.-2.*f);
+  float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));
+  return mix(mix(a,b,u.x),mix(c,d,u.x),u.y); }
+float fbm(vec2 p){ return .65*vnoise(p)+.35*vnoise(p*2.03+vec2(4.1,7.3)); }
+
+vec3 ramp(float t){
+  float cp=uColorPos;
+  float p1=clamp(.28+cp,.06,.46), p2=clamp(.52+cp*.6,p1+.04,.74), p3=clamp(.76+cp*.3,p2+.04,.94);
+  vec3 o0=ok(c0),o1=ok(c1),o2=ok(c2),o3=ok(c3),o4=ok(c4),c;
+  if(t<p1) c=mix(o0,o1,smoothstep(0.,p1,t));
+  else if(t<p2) c=mix(o1,o2,smoothstep(p1,p2,t));
+  else if(t<p3) c=mix(o2,o3,smoothstep(p2,p3,t));
+  else c=mix(o3,o4,smoothstep(p3,1.,t));
+  return oklabToLin(c);
+}
+
+void main(){
+  vec2 uv=gl_FragCoord.xy/uRes;
+  vec2 p=uv*vec2(uRes.x/uRes.y,1.0);
+  float ph=(uAnim==1)? uTime*uSpeed : 0.0;
+
+  vec2 drift=vec2(sin(ph*.7), cos(ph*.5))*uMove*0.55;          // 색 덩어리 morph
+  vec2 np=p*uScale+uSeed+drift;
+  vec2 flow=vec2(fbm(np), fbm(np+vec2(11.3,5.7)))-.5;
+  vec2 duv=uv+flow*(0.12+uTex*0.85);
+
+  // 흐름 방향: 45° 기준으로 시간에 따라 천천히 스윙 (자동)
+  float ang = 0.7853982 + (sin(ph*0.13) + 0.5*sin(ph*0.071+1.7))*uAngleRange;
+  float c=cos(ang), s=sin(ang);
+  float dmin=min(0.,c)+min(0.,s), span=abs(c)+abs(s);
+  float g=(dot(duv,vec2(c,s))-dmin)/max(span,1e-3);
+
+  // 밝은 지점: 시간에 따라 화면을 천천히 떠돎 (자동, 비주기적 합성)
+  vec2 wander=vec2(sin(ph*0.11)*0.30 + sin(ph*0.067+2.1)*0.16,
+                   cos(ph*0.09+1.0)*0.26 + sin(ph*0.053+0.5)*0.14);
+  vec2 hp=vec2(0.5) + wander*uHWander + flow*0.08;
+  float hl=smoothstep(uHSize, 0.0, distance(uv,hp));
+
+  float t=g + hl*uHInt*0.4 + uLevel;
+  t=clamp((t-0.5)*uContrast+0.5, 0.0, 1.0);
+  vec3 lin=ramp(t);
+  lin += hl*hl*0.05*uHInt;
+
+  vec3 srgb=toSRGB(max(lin,0.0));
+  srgb += (hash(gl_FragCoord.xy+uSeed)-.5)/255.0;
+  frag=vec4(srgb,1.0);
+}`;
+
+const cv=document.getElementById('gl'), gl=cv.getContext('webgl2',{antialias:false});
+let prog, raf=0, t0=performance.now();
+const state={pal:PALETTES[0],seed:Math.random()*100,anim:true,
+  scale:1.10,tex:.40,contrast:.75,level:.05,colorPos:0,
+  hsize:.87,hint:.50,hwander:1.50,angleRange:2.16,speed:1.20,move:1.20};
+
+function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);
+  if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o));return o;}
+function hex(h){return [parseInt(h.slice(1,3),16)/255,parseInt(h.slice(3,5),16)/255,parseInt(h.slice(5,7),16)/255];}
+function fail(m){const e=document.getElementById('err');e.style.display='grid';e.textContent='렌더 실패: '+m;cv.style.display='none';}
+
+function init(){
+  if(!gl){fail('WebGL2 미지원');return;}
+  prog=gl.createProgram();
+  try{gl.attachShader(prog,sh(gl.VERTEX_SHADER,VERT));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FRAG));}catch(e){fail(e.message);return;}
+  gl.linkProgram(prog);
+  if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){fail(gl.getProgramInfoLog(prog));return;}
+  gl.useProgram(prog);
+  const vao=gl.createVertexArray();gl.bindVertexArray(vao);
+  const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  const l=gl.getAttribLocation(prog,'aPos');gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,2,gl.FLOAT,false,0,0);
+  resize();render(); addEventListener('resize',()=>{resize();if(!state.anim)render();});
+}
+function resize(){const d=Math.min(devicePixelRatio||1,2),w=cv.clientWidth*d,h=cv.clientHeight*d;
+  if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}gl.viewport(0,0,cv.width,cv.height);}
+function U(n){return gl.getUniformLocation(prog,n);}
+function render(){
+  gl.useProgram(prog);
+  gl.uniform2f(U('uRes'),cv.width,cv.height);
+  gl.uniform1f(U('uTime'),(performance.now()-t0)/1000);
+  ['Seed:seed','Scale:scale','Tex:tex','Contrast:contrast','Level:level','ColorPos:colorPos','AngleRange:angleRange','HSize:hsize','HInt:hint','HWander:hwander','Speed:speed','Move:move']
+    .forEach(x=>{const [u,k]=x.split(':');gl.uniform1f(U('u'+u),state[k]);});
+  gl.uniform1i(U('uAnim'),state.anim?1:0);
+  state.pal.c.forEach((h,i)=>gl.uniform3fv(U('c'+i),hex(h)));
+  gl.drawArrays(gl.TRIANGLES,0,3);
+  if(state.anim)raf=requestAnimationFrame(render);
+}
+const draw=()=>{if(!state.anim)render();};
+
+const SL=[
+  ['g_form','스케일','scale',20,280,110,'scale',v=>v/100],
+  ['g_form','질감','tex',0,180,40,'tex',v=>v/100],
+  ['g_form','대비','contrast',30,200,75,'contrast',v=>v/100],
+  ['g_form','밝기','level',-50,50,5,'level',v=>v/100],
+  ['g_form','색분포','colorPos',-40,40,0,'colorPos',v=>v/200],
+  ['g_hl','크기','hsize',20,200,87,'hsize',v=>v/100],
+  ['g_hl','세기','hint',0,150,50,'hint',v=>v/100],
+  ['g_hl','밝은점 이동','hwander',0,150,150,'hwander',v=>v/100],
+  ['g_hl','방향 변화','arange',0,180,180,'angleRange',v=>v/100*1.2],
+  ['g_motion','속도','speed',0,250,120,'speed',v=>v/100],
+  ['g_motion','변화량','move',0,160,120,'move',v=>v/100],
+];
+SL.forEach(([grp,label,id,min,max,val,key,fn])=>{
+  const wrap=document.createElement('div');wrap.className='sl';
+  wrap.innerHTML=`<span class="lbl">${label}</span><input type="range" id="s_${id}" min="${min}" max="${max}" value="${val}"><b id="v_${id}">${val}</b>`;
+  document.getElementById(grp).appendChild(wrap);
+  const s=wrap.querySelector('input'),v=wrap.querySelector('b');
+  s.oninput=()=>{state[key]=fn(+s.value);v.textContent=s.value;draw();};
+});
+
+const pc=document.getElementById('palettes');
+PALETTES.forEach((p,i)=>{const b=document.createElement('button');b.className='chip';b.setAttribute('aria-pressed',i===0);
+  b.innerHTML=`<span class="sw" style="background:linear-gradient(90deg,${p.sw.join(',')})"></span>${p.n}`;
+  b.onclick=()=>{[...pc.children].forEach(c=>c.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');state.pal=p;draw();};
+  pc.appendChild(b);});
+document.getElementById('reseed').onclick=()=>{state.seed=Math.random()*100;draw();};
+document.getElementById('anim').onclick=e=>{state.anim=!state.anim;e.target.setAttribute('aria-pressed',state.anim);
+  e.target.textContent=state.anim?'⏸ 모션':'▶ 모션';
+  if(state.anim){t0=performance.now()-(state._t||0)*1000;render();}else{state._t=(performance.now()-t0)/1000;cancelAnimationFrame(raf);}};
+
+init();
+</script>
