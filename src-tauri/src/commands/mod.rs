@@ -1,3 +1,6 @@
+pub mod library;
+pub mod scan;
+
 use serde::Serialize;
 use tauri::Manager;
 

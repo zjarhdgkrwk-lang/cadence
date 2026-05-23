@@ -1,8 +1,7 @@
 -- Cadence initial schema (SSOT §6, CLAUDE.md §아키텍처 규칙)
 -- raw_* = 파일 태그 원본, *_override = 사용자 편집
 -- 표시값: COALESCE(override, raw, filename)
-PRAGMA journal_mode = WAL;
-PRAGMA foreign_keys = ON;
+-- NOTE: PRAGMA journal_mode/foreign_keys는 SqliteConnectOptions에서 설정
 
 -- ──────────────────────────────────────────
 -- 1. folders: 감시 대상 루트 폴더

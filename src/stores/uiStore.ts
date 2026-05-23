@@ -3,12 +3,15 @@ import { persist } from "zustand/middleware";
 
 export type Theme = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
+export type LibraryView = "tracks" | "albums" | "artists";
 
 interface UIState {
   theme: Theme;
   resolvedTheme: ResolvedTheme;
   prefersReducedMotion: boolean;
+  currentView: LibraryView;
   setTheme: (theme: Theme) => void;
+  setView: (view: LibraryView) => void;
   _resolveTheme: (mediaMatches: boolean) => void;
 }
 
@@ -33,6 +36,11 @@ export const useUIStore = create<UIState>()(
       theme: "light" as Theme,
       resolvedTheme: "light" as ResolvedTheme,
       prefersReducedMotion: false,
+      currentView: "tracks" as LibraryView,
+
+      setView(view: LibraryView) {
+        set({ currentView: view });
+      },
 
       setTheme(theme: Theme) {
         const resolved: ResolvedTheme =
