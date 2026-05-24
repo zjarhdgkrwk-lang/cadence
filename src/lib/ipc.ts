@@ -4,11 +4,13 @@ import type {
   FolderEntry,
   LoadedQueue,
   PageResult,
+  Playlist,
   SaveQueuePayload,
   ScanComplete,
   ScanProgress,
   SortDir,
   SortField,
+  Track,
 } from "./types";
 
 export interface AppInfo {
@@ -119,6 +121,46 @@ export async function setAppState(key: string, value: string): Promise<void> {
 
 export async function updatePlayStats(trackId: number): Promise<void> {
   return invoke<void>("update_play_stats", { trackId });
+}
+
+// ── LRC 가사 ──────────────────────────────────────────────────
+
+export async function readLrcFile(trackId: number): Promise<string | null> {
+  return invoke<string | null>("read_lrc_file", { trackId });
+}
+
+export async function updateLrcOffset(trackId: number, offsetMs: number): Promise<void> {
+  return invoke<void>("update_lrc_offset", { trackId, offsetMs });
+}
+
+// ── 플레이리스트 ───────────────────────────────────────────────
+
+export async function listPlaylists(): Promise<Playlist[]> {
+  return invoke<Playlist[]>("list_playlists");
+}
+
+export async function createPlaylist(name: string): Promise<Playlist> {
+  return invoke<Playlist>("create_playlist", { name });
+}
+
+export async function renamePlaylist(id: number, name: string): Promise<void> {
+  return invoke<void>("rename_playlist", { id, name });
+}
+
+export async function deletePlaylist(id: number): Promise<void> {
+  return invoke<void>("delete_playlist", { id });
+}
+
+export async function getPlaylistTracks(playlistId: number): Promise<Track[]> {
+  return invoke<Track[]>("get_playlist_tracks", { playlistId });
+}
+
+export async function addTracksToPlaylist(playlistId: number, trackIds: number[]): Promise<void> {
+  return invoke<void>("add_tracks_to_playlist", { playlistId, trackIds });
+}
+
+export async function removeTrackFromPlaylist(playlistId: number, trackId: number): Promise<void> {
+  return invoke<void>("remove_track_from_playlist", { playlistId, trackId });
 }
 
 // ── アート サムネイル URL ────────────────────────────────────

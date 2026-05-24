@@ -1,5 +1,6 @@
 pub mod library;
 pub mod player;
+pub mod playlist;
 pub mod scan;
 
 use serde::Serialize;

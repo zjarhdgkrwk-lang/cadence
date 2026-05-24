@@ -1,4 +1,5 @@
 import { FolderManager } from "../library/FolderManager";
+import { PlaylistSection } from "../playlists/PlaylistSection";
 import { useUIStore, type LibraryView } from "../../stores/uiStore";
 import { openLogFolder } from "../../lib/ipc";
 
@@ -7,6 +8,8 @@ const NAV_ITEMS: { label: string; view: LibraryView }[] = [
   { label: "앨범", view: "albums" },
   { label: "아티스트", view: "artists" },
 ];
+
+// playlist view is handled by PlaylistSection, not NAV_ITEMS
 
 export function Sidebar() {
   const { currentView, setView } = useUIStore();
@@ -64,6 +67,11 @@ export function Sidebar() {
               </li>
             ))}
           </ul>
+        </div>
+
+        {/* 플레이리스트 */}
+        <div className="border-b" style={{ borderColor: "var(--color-border)" }}>
+          <PlaylistSection />
         </div>
 
         {/* 폴더 관리 */}

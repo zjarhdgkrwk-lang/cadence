@@ -16,12 +16,30 @@ export interface Track {
   has_embedded_art: boolean;
   art_cache_path: string | null;
   dominant_color: string | null;
+  lrc_path: string | null;
+  lrc_offset_ms: number;
   lyrics_source: "lrc_file" | "embedded" | "none";
   missing: boolean;
   date_added: number;
   last_played_at: number | null;
   play_count: number;
 }
+
+export interface Playlist {
+  id: number;
+  name: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface LrcLine {
+  timeMs: number;
+  text: string;
+}
+
+export type QueueSource =
+  | { type: "library" }
+  | { type: "playlist"; playlistId: number; playlistName: string };
 
 export interface FolderEntry {
   id: number;

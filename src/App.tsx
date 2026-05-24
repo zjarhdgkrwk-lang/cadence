@@ -6,6 +6,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { getAppInfo, loadQueue, getAppState } from "@/lib/ipc";
 import { initLogger } from "@/lib/logger";
 import { useQueueStore } from "@/stores/queueStore";
+import { usePlaylistStore } from "@/stores/playlistStore";
 import { controller } from "@/lib/playerController";
 
 // 가능한 한 일찍 인터셉터 설치 (모듈 평가 시점)
@@ -52,6 +53,8 @@ function App() {
     }
 
     restore();
+
+    usePlaylistStore.getState().loadPlaylists().catch(() => {});
 
     getAppInfo()
       .then((info) => {

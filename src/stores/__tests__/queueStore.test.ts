@@ -24,6 +24,8 @@ function mkTrack(id: number): Track {
     has_embedded_art: false,
     art_cache_path: null,
     dominant_color: null,
+    lrc_path: null,
+    lrc_offset_ms: 0,
     lyrics_source: "none",
     missing: false,
     date_added: 0,

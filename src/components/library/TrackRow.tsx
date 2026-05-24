@@ -1,6 +1,7 @@
 import { memo } from "react";
 import type { Track } from "../../lib/types";
 import { artUrl } from "../../lib/ipc";
+import { useUIStore } from "../../stores/uiStore";
 
 interface Props {
   track: Track;
@@ -29,6 +30,11 @@ export const TrackRow = memo(function TrackRow({
     console.log(`[TrackRow#0] art_cache_path=${track.art_cache_path} src=${artSrc}`);
   }
 
+  function handleContextMenu(e: React.MouseEvent) {
+    e.preventDefault();
+    useUIStore.getState().setContextMenu({ x: e.clientX, y: e.clientY, track });
+  }
+
   return (
     <div
       style={style}
@@ -36,6 +42,7 @@ export const TrackRow = memo(function TrackRow({
       role="row"
       aria-rowindex={index + 1}
       onDoubleClick={() => onDoubleClick?.(track)}
+      onContextMenu={handleContextMenu}
     >
       {/* 트랙번호 / 앨범아트 */}
       <div className="w-8 flex-shrink-0 flex items-center justify-center">

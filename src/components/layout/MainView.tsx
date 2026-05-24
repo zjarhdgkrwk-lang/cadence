@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { LibraryHeader } from "../library/LibraryHeader";
 import { TrackList } from "../library/TrackList";
+import { PlaylistDetail } from "../playlists/PlaylistDetail";
 import { useLibraryStore } from "../../stores/libraryStore";
 import { useUIStore } from "../../stores/uiStore";
 
@@ -35,6 +36,7 @@ export function MainView() {
 
   if (currentView === "albums") return <PlaceholderView title="앨범" />;
   if (currentView === "artists") return <PlaceholderView title="아티스트" />;
+  if (currentView === "playlist") return <PlaylistDetail />;
 
   return (
     <main

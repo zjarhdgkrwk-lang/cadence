@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Track, RepeatMode } from "../lib/types";
+import type { Track, RepeatMode, QueueSource } from "../lib/types";
 
 const REPEAT_CYCLE: RepeatMode[] = [
   "no_repeat",
@@ -31,9 +31,10 @@ interface QueueState {
   unplayed: number[];
   shuffle: boolean;
   repeatMode: RepeatMode;
+  source: QueueSource;
 
   // ── Actions ──────────────────────────────────────────────────
-  replaceQueue: (tracks: Track[], startIndex: number) => void;
+  replaceQueue: (tracks: Track[], startIndex: number, source?: QueueSource) => void;
   addToQueueNext: (track: Track) => void;
   addToQueueEnd: (track: Track) => void;
   /** 다음 트랙으로 이동. null = 정지 필요 */
@@ -55,14 +56,16 @@ export const useQueueStore = create<QueueState>((set, get) => ({
   unplayed: [],
   shuffle: false,
   repeatMode: "no_repeat",
+  source: { type: "library" } as QueueSource,
 
-  replaceQueue(tracks, startIndex) {
+  replaceQueue(tracks, startIndex, source) {
     const si = Math.max(0, Math.min(startIndex, tracks.length - 1));
     set({
       items: tracks,
       currentIndex: si,
       history: [],
       unplayed: get().shuffle ? buildUnplayed(tracks.length, si) : [],
+      source: source ?? { type: "library" },
     });
   },
 

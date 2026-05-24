@@ -1,17 +1,32 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { Track } from "../lib/types";
 
 export type Theme = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
-export type LibraryView = "tracks" | "albums" | "artists";
+export type LibraryView = "tracks" | "albums" | "artists" | "playlist";
+export type RightPanel = "queue" | "lyrics" | null;
+
+export interface ContextMenuState {
+  x: number;
+  y: number;
+  track: Track;
+  playlistId?: number;
+}
 
 interface UIState {
   theme: Theme;
   resolvedTheme: ResolvedTheme;
   prefersReducedMotion: boolean;
   currentView: LibraryView;
+  rightPanel: RightPanel;
+  selectedPlaylistId: number | null;
+  contextMenu: ContextMenuState | null;
   setTheme: (theme: Theme) => void;
   setView: (view: LibraryView) => void;
+  setRightPanel: (panel: RightPanel) => void;
+  setSelectedPlaylistId: (id: number | null) => void;
+  setContextMenu: (menu: ContextMenuState | null) => void;
   _resolveTheme: (mediaMatches: boolean) => void;
 }
 
@@ -37,9 +52,24 @@ export const useUIStore = create<UIState>()(
       resolvedTheme: "light" as ResolvedTheme,
       prefersReducedMotion: false,
       currentView: "tracks" as LibraryView,
+      rightPanel: null as RightPanel,
+      selectedPlaylistId: null,
+      contextMenu: null,
 
       setView(view: LibraryView) {
         set({ currentView: view });
+      },
+
+      setRightPanel(panel: RightPanel) {
+        set({ rightPanel: panel });
+      },
+
+      setSelectedPlaylistId(id: number | null) {
+        set({ selectedPlaylistId: id });
+      },
+
+      setContextMenu(menu: ContextMenuState | null) {
+        set({ contextMenu: menu });
       },
 
       setTheme(theme: Theme) {

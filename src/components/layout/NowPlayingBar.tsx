@@ -1,5 +1,6 @@
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, List, Mic2 } from "lucide-react";
 import { usePlayerStore } from "../../stores/playerStore";
+import { useUIStore } from "../../stores/uiStore";
 import { artUrl } from "../../lib/ipc";
 import { Controls } from "../player/Controls";
 import { ProgressBar } from "../player/ProgressBar";
@@ -10,9 +11,15 @@ export function NowPlayingBar() {
   const track = usePlayerStore((s) => s.currentTrack);
   const status = usePlayerStore((s) => s.status);
   const art = artUrl(track?.art_cache_path ?? null);
+  const rightPanel = useUIStore((s) => s.rightPanel);
+  const { setRightPanel } = useUIStore.getState();
 
   // error 상태이고 트랙이 없으면 시스템 전체 오류로 간주
   const isSystemError = status === "error" && !track;
+
+  function togglePanel(panel: "queue" | "lyrics") {
+    setRightPanel(rightPanel === panel ? null : panel);
+  }
 
   return (
     <footer
@@ -78,13 +85,45 @@ export function NowPlayingBar() {
         <ProgressBar />
       </div>
 
-      {/* 우: 셔플/반복 + 볼륨 */}
+      {/* 우: 셔플/반복 + 볼륨 + 패널 토글 */}
       <div
         className="flex items-center gap-2 shrink-0 justify-end"
         style={{ width: 200 }}
       >
         <ShuffleRepeatControls />
         <VolumeControl />
+        <button
+          onClick={() => togglePanel("queue")}
+          className="p-1.5 rounded transition-colors hover:bg-[var(--color-surface-raised)]"
+          title="재생 큐"
+          aria-label="재생 큐 패널"
+          aria-pressed={rightPanel === "queue"}
+        >
+          <List
+            size={16}
+            style={{
+              color: rightPanel === "queue"
+                ? "var(--color-accent)"
+                : "var(--color-fg-muted)",
+            }}
+          />
+        </button>
+        <button
+          onClick={() => togglePanel("lyrics")}
+          className="p-1.5 rounded transition-colors hover:bg-[var(--color-surface-raised)]"
+          title="가사"
+          aria-label="가사 패널"
+          aria-pressed={rightPanel === "lyrics"}
+        >
+          <Mic2
+            size={16}
+            style={{
+              color: rightPanel === "lyrics"
+                ? "var(--color-accent)"
+                : "var(--color-fg-muted)",
+            }}
+          />
+        </button>
       </div>
     </footer>
   );

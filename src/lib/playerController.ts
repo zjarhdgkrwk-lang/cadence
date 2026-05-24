@@ -3,7 +3,7 @@ import { usePlayerStore } from "../stores/playerStore";
 import { useQueueStore } from "../stores/queueStore";
 import { scheduleSave } from "./persist";
 import { updatePlayStats } from "./ipc";
-import type { Track, PlayerStatus } from "./types";
+import type { Track, PlayerStatus, QueueSource } from "./types";
 
 export interface IPlayerController {
   mountAudio(el: HTMLAudioElement): void;
@@ -18,7 +18,7 @@ export interface IPlayerController {
   toggleShuffle(): void;
   cycleRepeat(): void;
   playTrack(track: Track): void;
-  replaceQueueAndPlay(tracks: Track[], startIndex: number): void;
+  replaceQueueAndPlay(tracks: Track[], startIndex: number, source?: QueueSource): void;
   addToQueueNext(track: Track): void;
   addToQueueEnd(track: Track): void;
   /** 앱 복원용: 자동 재생 없이 지정 트랙+위치로 준비 */
@@ -382,11 +382,11 @@ class PlayerController implements IPlayerController {
     this._loadAndPlay(track);
   }
 
-  replaceQueueAndPlay(tracks: Track[], startIndex: number) {
+  replaceQueueAndPlay(tracks: Track[], startIndex: number, source?: QueueSource) {
     if (tracks.length === 0) return;
     this._errorCount = 0;
     const si = Math.max(0, Math.min(startIndex, tracks.length - 1));
-    useQueueStore.getState().replaceQueue(tracks, si);
+    useQueueStore.getState().replaceQueue(tracks, si, source);
     this._loadAndPlay(tracks[si]);
   }
 

@@ -53,6 +53,8 @@ pub struct TrackRow {
     pub has_embedded_art: bool,
     pub art_cache_path: Option<String>,
     pub dominant_color: Option<String>,
+    pub lrc_path: Option<String>,
+    pub lrc_offset_ms: i64,
     pub lyrics_source: String,
     pub missing: bool,
     pub date_added: i64,
@@ -222,6 +224,7 @@ pub async fn get_tracks(
            COALESCE(year_override,raw_year) AS year,
            duration_ms, bitrate, codec,
            has_embedded_art, art_cache_path, dominant_color,
+           lrc_path, lrc_offset_ms,
            lyrics_source, missing, date_added, last_played_at, play_count
          FROM tracks WHERE missing=0
          ORDER BY {order}
@@ -264,6 +267,7 @@ const TRACK_SELECT: &str =
        COALESCE(year_override,raw_year) AS year,
        duration_ms, bitrate, codec,
        has_embedded_art, art_cache_path, dominant_color,
+       lrc_path, lrc_offset_ms,
        lyrics_source, missing, date_added, last_played_at, play_count
      FROM tracks";
 
@@ -331,6 +335,7 @@ pub async fn search_tracks(
                COALESCE(t.year_override,t.raw_year) AS year,
                t.duration_ms, t.bitrate, t.codec,
                t.has_embedded_art, t.art_cache_path, t.dominant_color,
+               t.lrc_path, t.lrc_offset_ms,
                t.lyrics_source, t.missing, t.date_added, t.last_played_at, t.play_count
              FROM tracks t
              JOIN tracks_fts f ON f.rowid = t.id
