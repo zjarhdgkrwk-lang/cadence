@@ -38,3 +38,8 @@ sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio", "migrate"] }
 # 유틸
 sha2 = "0.10"
 hex = "0.4"
+
+# 로깅
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-appender = "0.2"

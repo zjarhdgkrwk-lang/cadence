@@ -1,5 +1,6 @@
 import { FolderManager } from "../library/FolderManager";
 import { useUIStore, type LibraryView } from "../../stores/uiStore";
+import { openLogFolder } from "../../lib/ipc";
 
 const NAV_ITEMS: { label: string; view: LibraryView }[] = [
   { label: "전체 곡", view: "tracks" },
@@ -70,6 +71,20 @@ export function Sidebar() {
           <FolderManager />
         </div>
       </nav>
+
+      {/* 하단 유틸리티 */}
+      <div
+        className="px-3 py-2 border-t flex-shrink-0"
+        style={{ borderColor: "var(--color-border)" }}
+      >
+        <button
+          onClick={() => openLogFolder().catch(() => {})}
+          className="w-full text-left text-xs px-2 py-1 rounded transition-colors hover:bg-[var(--color-surface-raised)]"
+          style={{ color: "var(--color-fg-subtle)" }}
+        >
+          로그 폴더 열기
+        </button>
+      </div>
     </aside>
   );
 }

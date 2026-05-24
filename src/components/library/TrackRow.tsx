@@ -6,6 +6,7 @@ interface Props {
   track: Track;
   index: number;
   style: React.CSSProperties;
+  onDoubleClick?: (track: Track) => void;
 }
 
 function formatDuration(ms: number | null): string {
@@ -16,7 +17,12 @@ function formatDuration(ms: number | null): string {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
-export const TrackRow = memo(function TrackRow({ track, index, style }: Props) {
+export const TrackRow = memo(function TrackRow({
+  track,
+  index,
+  style,
+  onDoubleClick,
+}: Props) {
   const artSrc = artUrl(track.art_cache_path);
   // [진단] 첫 번째 행의 최종 src 확인
   if (index === 0) {
@@ -26,9 +32,10 @@ export const TrackRow = memo(function TrackRow({ track, index, style }: Props) {
   return (
     <div
       style={style}
-      className="group flex items-center gap-3 px-4 select-none"
+      className="group flex items-center gap-3 px-4 select-none cursor-default"
       role="row"
       aria-rowindex={index + 1}
+      onDoubleClick={() => onDoubleClick?.(track)}
     >
       {/* 트랙번호 / 앨범아트 */}
       <div className="w-8 flex-shrink-0 flex items-center justify-center">

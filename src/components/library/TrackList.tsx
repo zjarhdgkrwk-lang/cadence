@@ -1,7 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useLibraryStore } from "../../stores/libraryStore";
 import { TrackRow } from "./TrackRow";
+import { controller } from "../../lib/playerController";
+import type { Track } from "../../lib/types";
 
 const ROW_HEIGHT = 52; // px (아트 포함 시 조금 더 여유)
 const LOAD_AHEAD_PX = 200;
@@ -9,6 +11,15 @@ const LOAD_AHEAD_PX = 200;
 export function TrackList() {
   const { tracks, totalTracks, loadMore, isLoadingMore } = useLibraryStore();
   const parentRef = useRef<HTMLDivElement>(null);
+
+  // 더블클릭: 현재 로드된 목록을 큐로 교체하고 해당 곡 재생
+  const handleDoubleClick = useCallback(
+    (track: Track) => {
+      const idx = tracks.findIndex((t) => t.id === track.id);
+      if (idx !== -1) controller.replaceQueueAndPlay([...tracks], idx);
+    },
+    [tracks]
+  );
 
   const rowVirtualizer = useVirtualizer({
     count: totalTracks,
@@ -70,6 +81,7 @@ export function TrackList() {
                   height: `${ROW_HEIGHT}px`,
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
+                onDoubleClick={handleDoubleClick}
               />
             );
           })}

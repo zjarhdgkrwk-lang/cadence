@@ -171,6 +171,12 @@ pub async fn upsert_track(
     }
 }
 
+/// ID로 단일 트랙 조회 (큐 복원용)
+pub async fn get_track_by_id(pool: &SqlitePool, id: i64) -> Result<Option<TrackRow>> {
+    let sql = format!("{TRACK_SELECT} WHERE id=? AND missing=0");
+    Ok(sqlx::query_as(&sql).bind(id).fetch_optional(pool).await?)
+}
+
 /// 정렬 + 페이지네이션으로 트랙 조회
 pub async fn get_tracks(
     pool: &SqlitePool,

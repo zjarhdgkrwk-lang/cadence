@@ -44,11 +44,11 @@ pub async fn start_scan(
         .map(|f| (f.id, std::path::PathBuf::from(&f.path), f.recursive))
         .collect();
 
-    // 블로킹하지 않고 백그라운드 태스크로 실행
+    tracing::info!("[scan] 스캔 시작  폴더 수={}", scan_folders.len());
     let app_clone = app.clone();
     tokio::spawn(async move {
         if let Err(e) = scan::scan_folders(app_clone, scan_folders).await {
-            eprintln!("[scan] 오류: {e}");
+            tracing::error!("[scan] 스캔 태스크 오류: {e}");
         }
     });
 

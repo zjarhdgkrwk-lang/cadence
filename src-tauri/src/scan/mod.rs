@@ -69,8 +69,7 @@ pub async fn scan_folders(
         }
     }
     let total = all_files.len();
-    println!("[scan] 파일 발견: {total}개");
-    println!("[scan] 아트 캐시 경로: {}", art_cache_dir.display());
+    tracing::info!("[scan] 파일 발견: {total}개  art_cache={}", art_cache_dir.display());
 
     // ── Phase 2: 메타데이터 + 아트 추출 (동기, CPU 바운드) ────────
     let t0_meta = Instant::now();
@@ -97,15 +96,13 @@ pub async fn scan_folders(
             Ok(u) => all_upserts.push(u),
             Err(e) => {
                 errors += 1;
-                eprintln!("[scan] 파일 처리 실패 {}: {e}", path.display());
+                tracing::error!("[scan] 파일 처리 실패  path={}  err={e}", path.display());
             }
         }
     }
-    println!(
-        "[scan] 메타데이터+아트: {}ms ({} 파일, {} 실패)",
+    tracing::info!(
+        "[scan] 메타데이터+아트: {}ms  total={total}  fail={errors}",
         t0_meta.elapsed().as_millis(),
-        total,
-        errors
     );
 
     // ── Phase 3: DB 배치 upsert (단일 트랜잭션) ───────────────────
@@ -120,13 +117,13 @@ pub async fn scan_folders(
             Ok(false) => updated += 1,
             Err(e) => {
                 errors += 1;
-                eprintln!("[scan] DB upsert 실패 {}: {e}", u.path);
+                tracing::error!("[scan] DB upsert 실패  path={}  err={e}", u.path);
             }
         }
     }
     tx.commit().await?;
-    println!(
-        "[scan] DB 배치 커밋: {}ms (신규={inserted}, 갱신={updated}, 오류={errors})",
+    tracing::info!(
+        "[scan] DB 배치 커밋: {}ms  inserted={inserted}  updated={updated}  errors={errors}",
         t0_db.elapsed().as_millis()
     );
 
@@ -162,18 +159,18 @@ fn collect_upsert(path: &Path, folder_id: i64, art_cache_dir: &Path) -> Result<T
     let chosung_artist = chosung::chosung_sequence(&display_artist);
 
     let (art_cache_path, dominant_color) = if let Some(cover) = &meta.cover_data {
-        eprintln!(
-            "[scan][아트] 커버 발견 ({} bytes): {}",
+        tracing::debug!(
+            "[scan][art] 커버 발견  bytes={}  file={}",
             cover.len(),
             path.file_name().and_then(|n| n.to_str()).unwrap_or("")
         );
         let thumb = match art::save_thumbnail(cover, path, art_cache_dir) {
             Ok(p) => {
-                eprintln!("[scan][아트] 썸네일 저장: {}", p.display());
+                tracing::debug!("[scan][art] 썸네일 저장: {}", p.display());
                 Some(p.to_string_lossy().to_string())
             }
             Err(e) => {
-                eprintln!("[scan][아트] 썸네일 저장 실패 {}: {e}", path.display());
+                tracing::error!("[scan][art] 썸네일 저장 실패  path={}  err={e}", path.display());
                 None
             }
         };

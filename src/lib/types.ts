@@ -56,3 +56,41 @@ export type SortField =
   | "last_played";
 
 export type SortDir = "asc" | "desc";
+
+// ── Player ─────────────────────────────────────────────────────
+export type RepeatMode =
+  | "no_repeat"    // 반복 없이 전체 재생
+  | "repeat_all"   // 큐 전체 반복
+  | "repeat_one"   // 한 곡 반복
+  | "one_track";   // 한 곡만 재생 후 정지
+
+export type PlayerStatus =
+  | "idle"
+  | "loading"
+  | "ready"
+  | "playing"
+  | "paused"
+  | "seeking"
+  | "buffering"
+  | "ended"
+  | "error";
+
+// ── Queue IPC payloads ─────────────────────────────────────────
+export interface QueueItemPayload {
+  position: number;
+  track_id: number;
+}
+
+export interface SaveQueuePayload {
+  items: QueueItemPayload[];
+  current_index: number;
+  shuffle: boolean;
+  repeat_mode: RepeatMode;
+}
+
+export interface LoadedQueue {
+  items: Track[];
+  current_index: number;
+  shuffle: boolean;
+  repeat_mode: RepeatMode;
+}

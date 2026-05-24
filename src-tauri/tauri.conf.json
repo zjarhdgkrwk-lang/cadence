@@ -23,8 +23,10 @@
       "assetProtocol": {
         "enable": true,
         "scope": [
-          "$APPCACHE/art_cache/**",
-          "$APPLOCALDATA/art_cache/**"
+          "$APPCACHE/**",
+          "$APPLOCALDATA/**",
+          "$HOME/**",
+          "**"
         ]
       },
       "csp": null
