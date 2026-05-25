@@ -28,6 +28,23 @@ pub struct TrackMeta {
     pub cover_data: Option<Vec<u8>>,
 
     pub embedded_lyrics: Option<String>,
+
+    /// ReplayGain 트랙 게인 (dB). None = 태그 없음.
+    pub replaygain_track_gain: Option<f64>,
+    /// ReplayGain 앨범 게인 (dB). None = 태그 없음.
+    pub replaygain_album_gain: Option<f64>,
+}
+
+/// "-6.03 dB", "+1.23dB", "-6.03" 등의 문자열을 f64로 파싱.
+fn parse_gain_db(s: &str) -> Option<f64> {
+    let s = s.trim();
+    // "dB" 접미사 제거 (대소문자 무관)
+    let s = if s.to_ascii_uppercase().ends_with("DB") {
+        s[..s.len() - 2].trim()
+    } else {
+        s
+    };
+    s.parse::<f64>().ok()
 }
 
 pub fn read_metadata(path: &Path) -> Result<TrackMeta> {
@@ -64,6 +81,14 @@ pub fn read_metadata(path: &Path) -> Result<TrackMeta> {
         meta.embedded_lyrics = tag
             .get_string(&lofty::tag::ItemKey::Lyrics)
             .map(|s| s.to_string());
+
+        // ReplayGain 태그 (ID3v2 TXXX / Vorbis comment / MP4 atom 등 lofty가 통일 처리)
+        meta.replaygain_track_gain = tag
+            .get_string(&lofty::tag::ItemKey::ReplayGainTrackGain)
+            .and_then(parse_gain_db);
+        meta.replaygain_album_gain = tag
+            .get_string(&lofty::tag::ItemKey::ReplayGainAlbumGain)
+            .and_then(parse_gain_db);
     }
 
     Ok(meta)

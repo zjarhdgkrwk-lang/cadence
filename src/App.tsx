@@ -21,16 +21,23 @@ function App() {
 
     async function restore() {
       try {
-        const [queueData, volumeStr, mutedStr, posStr] = await Promise.all([
-          loadQueue(),
-          getAppState("volume"),
-          getAppState("muted"),
-          getAppState("current_position_ms"),
-        ]);
+        const [queueData, volumeStr, mutedStr, posStr, speedStr, rgModeStr] =
+          await Promise.all([
+            loadQueue(),
+            getAppState("volume"),
+            getAppState("muted"),
+            getAppState("current_position_ms"),
+            getAppState("speed"),
+            getAppState("replaygain_mode"),
+          ]);
 
-        // 볼륨/뮤트 먼저 복원
+        // 볼륨/뮤트/속도/ReplayGain 복원 (자동 재생 없음)
         if (volumeStr) controller.setVolume(parseFloat(volumeStr));
         if (mutedStr) controller.setMuted(mutedStr === "true");
+        if (speedStr) controller.setSpeed(parseFloat(speedStr));
+        if (rgModeStr === "off" || rgModeStr === "track" || rgModeStr === "album") {
+          controller.setReplaygainMode(rgModeStr);
+        }
 
         if (queueData.items.length > 0) {
           const ci = Math.max(0, queueData.current_index);

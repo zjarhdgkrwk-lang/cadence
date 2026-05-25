@@ -28,6 +28,8 @@ async function doSave(): Promise<void> {
     await Promise.all([
       setAppState("volume", String(player.volume)),
       setAppState("muted", String(player.muted)),
+      setAppState("speed", String(player.speed)),
+      setAppState("replaygain_mode", player.replaygainMode),
       setAppState(
         "current_track_id",
         player.currentTrack ? String(player.currentTrack.id) : ""

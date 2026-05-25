@@ -47,6 +47,11 @@ interface QueueState {
   cycleRepeat: () => void;
   setRepeatMode: (mode: RepeatMode) => void;
   playIndex: (index: number) => Track | null;
+  /**
+   * 상태를 변경하지 않고 다음에 재생될 트랙을 반환. 프리로드 대상 결정용.
+   * 셔플 모드에서는 unplayed[0]을 provisional 후보로 반환 (실제 랜덤 선택과 다를 수 있음).
+   */
+  peekNextTrack: () => Track | null;
 }
 
 export const useQueueStore = create<QueueState>((set, get) => ({
@@ -202,6 +207,24 @@ export const useQueueStore = create<QueueState>((set, get) => ({
     }
 
     return { type: "idle" };
+  },
+
+  peekNextTrack() {
+    const { items, currentIndex, unplayed, shuffle, repeatMode } = get();
+    if (items.length === 0) return null;
+    if (repeatMode === "repeat_one") return items[currentIndex] ?? null;
+    if (repeatMode === "one_track") return null;
+
+    if (shuffle) {
+      if (unplayed.length > 0) return items[unplayed[0]] ?? null;
+      if (repeatMode === "repeat_all") return items[0] ?? null;
+      return null;
+    }
+
+    const nextIdx = currentIndex + 1;
+    if (nextIdx < items.length) return items[nextIdx];
+    if (repeatMode === "repeat_all") return items[0] ?? null;
+    return null;
   },
 
   setShuffle(on) {

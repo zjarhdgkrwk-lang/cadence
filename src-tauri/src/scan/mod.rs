@@ -221,5 +221,7 @@ fn collect_upsert(path: &Path, folder_id: i64, art_cache_dir: &Path) -> Result<T
         lrc_path,
         lyrics_source: lyrics_source.to_string(),
         folder_id,
+        replaygain_track_gain: meta.replaygain_track_gain,
+        replaygain_album_gain: meta.replaygain_album_gain,
     })
 }

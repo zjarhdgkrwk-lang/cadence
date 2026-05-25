@@ -23,7 +23,11 @@ export interface Track {
   date_added: number;
   last_played_at: number | null;
   play_count: number;
+  replaygain_track_gain: number | null;
+  replaygain_album_gain: number | null;
 }
+
+export type ReplaygainMode = "off" | "track" | "album";
 
 export interface Playlist {
   id: number;

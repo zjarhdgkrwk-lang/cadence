@@ -31,6 +31,8 @@ pub struct TrackUpsert {
     pub lrc_path: Option<String>,
     pub lyrics_source: String,
     pub folder_id: i64,
+    pub replaygain_track_gain: Option<f64>,
+    pub replaygain_album_gain: Option<f64>,
 }
 
 /// 프런트엔드로 직렬화해 내보내는 트랙 행
@@ -60,6 +62,8 @@ pub struct TrackRow {
     pub date_added: i64,
     pub last_played_at: Option<i64>,
     pub play_count: i64,
+    pub replaygain_track_gain: Option<f64>,
+    pub replaygain_album_gain: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -94,7 +98,9 @@ pub async fn upsert_track(
                chosung_title=?, chosung_artist=?,
                duration_ms=?, sample_rate=?, bitrate=?, codec=?,
                has_embedded_art=?, art_cache_path=?, dominant_color=?,
-               lrc_path=?, lyrics_source=?, folder_id=?, missing=0
+               lrc_path=?, lyrics_source=?, folder_id=?,
+               replaygain_track_gain=?, replaygain_album_gain=?,
+               missing=0
              WHERE path=?",
         )
         .bind(&u.filename)
@@ -123,6 +129,8 @@ pub async fn upsert_track(
         .bind(&u.lrc_path)
         .bind(&u.lyrics_source)
         .bind(u.folder_id)
+        .bind(u.replaygain_track_gain)
+        .bind(u.replaygain_album_gain)
         .bind(&u.path)
         .execute(&mut **tx)
         .await?;
@@ -136,8 +144,10 @@ pub async fn upsert_track(
                chosung_title, chosung_artist,
                duration_ms, sample_rate, bitrate, codec,
                has_embedded_art, art_cache_path, dominant_color,
-               lrc_path, lyrics_source, folder_id, date_added
-             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+               lrc_path, lyrics_source, folder_id,
+               replaygain_track_gain, replaygain_album_gain,
+               date_added
+             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         )
         .bind(&u.path)
         .bind(&u.filename)
@@ -166,6 +176,8 @@ pub async fn upsert_track(
         .bind(&u.lrc_path)
         .bind(&u.lyrics_source)
         .bind(u.folder_id)
+        .bind(u.replaygain_track_gain)
+        .bind(u.replaygain_album_gain)
         .bind(now_ms())
         .execute(&mut **tx)
         .await?;
@@ -225,7 +237,8 @@ pub async fn get_tracks(
            duration_ms, bitrate, codec,
            has_embedded_art, art_cache_path, dominant_color,
            lrc_path, lrc_offset_ms,
-           lyrics_source, missing, date_added, last_played_at, play_count
+           lyrics_source, missing, date_added, last_played_at, play_count,
+           replaygain_track_gain, replaygain_album_gain
          FROM tracks WHERE missing=0
          ORDER BY {order}
          LIMIT ? OFFSET ?"
@@ -268,7 +281,8 @@ const TRACK_SELECT: &str =
        duration_ms, bitrate, codec,
        has_embedded_art, art_cache_path, dominant_color,
        lrc_path, lrc_offset_ms,
-       lyrics_source, missing, date_added, last_played_at, play_count
+       lyrics_source, missing, date_added, last_played_at, play_count,
+       replaygain_track_gain, replaygain_album_gain
      FROM tracks";
 
 /// FTS5 전문 검색 (일반 텍스트) + 초성 LIKE 검색 자동 분기
@@ -336,7 +350,8 @@ pub async fn search_tracks(
                t.duration_ms, t.bitrate, t.codec,
                t.has_embedded_art, t.art_cache_path, t.dominant_color,
                t.lrc_path, t.lrc_offset_ms,
-               t.lyrics_source, t.missing, t.date_added, t.last_played_at, t.play_count
+               t.lyrics_source, t.missing, t.date_added, t.last_played_at, t.play_count,
+               t.replaygain_track_gain, t.replaygain_album_gain
              FROM tracks t
              JOIN tracks_fts f ON f.rowid = t.id
              WHERE f MATCH ? AND t.missing=0

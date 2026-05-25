@@ -31,6 +31,8 @@ function mkTrack(id: number): Track {
     date_added: 0,
     last_played_at: null,
     play_count: 0,
+    replaygain_track_gain: null,
+    replaygain_album_gain: null,
   };
 }
 

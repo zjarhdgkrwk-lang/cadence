@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Track, PlayerStatus } from "../lib/types";
+import type { Track, PlayerStatus, ReplaygainMode } from "../lib/types";
 
 interface PlayerState {
   status: PlayerStatus;
@@ -8,6 +8,8 @@ interface PlayerState {
   durationMs: number;
   volume: number;
   muted: boolean;
+  speed: number;
+  replaygainMode: ReplaygainMode;
   /** 재생 통계 중복 카운트 방지 (트랙 로드 시 리셋) */
   _statCredited: boolean;
 
@@ -18,6 +20,8 @@ interface PlayerState {
   _setDuration: (ms: number) => void;
   _setVolume: (v: number) => void;
   _setMuted: (m: boolean) => void;
+  _setSpeed: (v: number) => void;
+  _setReplaygainMode: (m: ReplaygainMode) => void;
   _creditStat: () => void;
   _resetStat: () => void;
 }
@@ -29,6 +33,8 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   durationMs: 0,
   volume: 1,
   muted: false,
+  speed: 1,
+  replaygainMode: "track",
   _statCredited: false,
 
   _transition: (status) => set({ status }),
@@ -37,6 +43,8 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   _setDuration: (durationMs) => set({ durationMs }),
   _setVolume: (volume) => set({ volume }),
   _setMuted: (muted) => set({ muted }),
+  _setSpeed: (speed) => set({ speed }),
+  _setReplaygainMode: (replaygainMode) => set({ replaygainMode }),
   _creditStat: () => set({ _statCredited: true }),
   _resetStat: () => set({ _statCredited: false }),
 }));

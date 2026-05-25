@@ -6,6 +6,7 @@ import { Controls } from "../player/Controls";
 import { ProgressBar } from "../player/ProgressBar";
 import { VolumeControl } from "../player/VolumeControl";
 import { ShuffleRepeatControls } from "../player/ShuffleRepeatControls";
+import { SpeedControl } from "../player/SpeedControl";
 
 export function NowPlayingBar() {
   const track = usePlayerStore((s) => s.currentTrack);
@@ -91,6 +92,7 @@ export function NowPlayingBar() {
         style={{ width: 200 }}
       >
         <ShuffleRepeatControls />
+        <SpeedControl />
         <VolumeControl />
         <button
           onClick={() => togglePanel("queue")}

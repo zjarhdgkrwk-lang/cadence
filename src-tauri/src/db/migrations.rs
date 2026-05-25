@@ -14,5 +14,11 @@ pub fn all() -> Vec<Migration> {
             sql: include_str!("../../migrations/002_fts_triggers.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 5,
+            description: "replaygain_columns",
+            sql: include_str!("../../migrations/005_replaygain.sql"),
+            kind: MigrationKind::Up,
+        },
     ]
 }
