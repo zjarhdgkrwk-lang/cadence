@@ -71,6 +71,7 @@ pub fn run() {
             commands::scan::start_scan,
             commands::library::get_tracks,
             commands::library::search_tracks,
+            commands::library::search_tracks_v2,
             commands::player::save_queue,
             commands::player::load_queue,
             commands::player::get_app_state,
@@ -83,8 +84,17 @@ pub fn run() {
             commands::playlist::get_playlist_tracks,
             commands::playlist::add_tracks_to_playlist,
             commands::playlist::remove_track_from_playlist,
+            commands::playlist::reorder_playlist_items,
             commands::playlist::update_lrc_offset,
             commands::playlist::read_lrc_file,
+            commands::tag::list_tags,
+            commands::tag::create_tag,
+            commands::tag::rename_tag,
+            commands::tag::set_tag_color,
+            commands::tag::delete_tag,
+            commands::tag::get_track_tags,
+            commands::tag::assign_tags,
+            commands::tag::bulk_assign_tags,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

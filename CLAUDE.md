@@ -34,6 +34,7 @@
 ## 아키텍처 규칙 (SSOT §6, §12)
 - 재생 제어(버튼/단축키/SMTC/트레이/출력끊김)는 전부 **단일 PlayerController + Player 상태 머신**(§12.1~12.2)을 경유한다. 입력원이 `<audio>`를 직접 만지지 않는다.
 - DB는 §6 스키마를 따른다: `raw_*` / `*_override` 분리(표시값 = COALESCE override→raw→파일명), `queue_state`/`queue_items`/`queue_history`, FTS5에 태그 포함, 정렬·초성 키 사전 계산. 스키마는 마이그레이션으로 관리.
+- **마이그레이션 단일 주체**: `migrations/` 폴더 + `sqlx::migrate!()` (lib.rs). 적용된 파일은 절대 수정 금지, 변경은 새 번호 파일 추가로만. `src-tauri/src/db/migrations.rs`는 사문(사용 안 함).
 - missing 파일은 자동 삭제 금지(tombstone), 수동 "없는 파일 정리"로만 제거(§3.1).
 - IPC 커맨드는 §12.4 계약을 따르고 입력/출력/오류 타입을 명시한다.
 

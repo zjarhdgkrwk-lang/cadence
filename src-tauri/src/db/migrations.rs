@@ -1,24 +1,3 @@
-use tauri_plugin_sql::{Migration, MigrationKind};
-
-pub fn all() -> Vec<Migration> {
-    vec![
-        Migration {
-            version: 1,
-            description: "initial_schema",
-            sql: include_str!("../../migrations/001_initial.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 2,
-            description: "fts_triggers",
-            sql: include_str!("../../migrations/002_fts_triggers.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 5,
-            description: "replaygain_columns",
-            sql: include_str!("../../migrations/005_replaygain.sql"),
-            kind: MigrationKind::Up,
-        },
-    ]
-}
+// 이 파일은 사용되지 않습니다.
+// 실제 마이그레이션 주체: migrations/ 폴더 + sqlx::migrate!() (lib.rs 참조)
+// tauri-plugin-sql 방식의 Vec<Migration>은 이 프로젝트에서 채택하지 않았습니다.

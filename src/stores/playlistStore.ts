@@ -8,7 +8,9 @@ import {
   getPlaylistTracks,
   addTracksToPlaylist as ipcAdd,
   removeTrackFromPlaylist as ipcRemove,
+  reorderPlaylistItems as ipcReorder,
 } from "../lib/ipc";
+import type { PlaylistItemOrder } from "../lib/types";
 
 interface PlaylistState {
   playlists: Playlist[];
@@ -21,6 +23,8 @@ interface PlaylistState {
   loadPlaylistTracks: (playlistId: number) => Promise<void>;
   addTracks: (playlistId: number, trackIds: number[]) => Promise<void>;
   removeTrack: (playlistId: number, trackId: number) => Promise<void>;
+  setPlaylistTracks: (playlistId: number, tracks: Track[]) => void;
+  reorderTracks: (playlistId: number, newTracks: Track[]) => Promise<void>;
 }
 
 export const usePlaylistStore = create<PlaylistState>((set, get) => ({
@@ -90,5 +94,32 @@ export const usePlaylistStore = create<PlaylistState>((set, get) => ({
         p.id === playlistId ? { ...p, updated_at: Date.now() } : p
       ),
     }));
+  },
+
+  setPlaylistTracks(playlistId, tracks) {
+    set((s) => ({
+      playlistTracksMap: { ...s.playlistTracksMap, [playlistId]: tracks },
+    }));
+  },
+
+  async reorderTracks(playlistId, newTracks) {
+    const prev = get().playlistTracksMap[playlistId] ?? [];
+    // Optimistic update before IPC
+    set((s) => ({
+      playlistTracksMap: { ...s.playlistTracksMap, [playlistId]: newTracks },
+    }));
+    const newOrder: PlaylistItemOrder[] = newTracks.map((t, pos) => ({
+      track_id: t.id,
+      position: pos,
+    }));
+    try {
+      await ipcReorder(playlistId, newOrder);
+    } catch (err) {
+      // Revert on failure
+      set((s) => ({
+        playlistTracksMap: { ...s.playlistTracksMap, [playlistId]: prev },
+      }));
+      throw err;
+    }
   },
 }));

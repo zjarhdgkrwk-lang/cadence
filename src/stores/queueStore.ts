@@ -35,6 +35,7 @@ interface QueueState {
 
   // ── Actions ──────────────────────────────────────────────────
   replaceQueue: (tracks: Track[], startIndex: number, source?: QueueSource) => void;
+  reorderItems: (newItems: Track[], newCurrentIndex: number) => void;
   addToQueueNext: (track: Track) => void;
   addToQueueEnd: (track: Track) => void;
   /** 다음 트랙으로 이동. null = 정지 필요 */
@@ -71,6 +72,16 @@ export const useQueueStore = create<QueueState>((set, get) => ({
       history: [],
       unplayed: get().shuffle ? buildUnplayed(tracks.length, si) : [],
       source: source ?? { type: "library" },
+    });
+  },
+
+  reorderItems(newItems, newCurrentIndex) {
+    const { shuffle } = get();
+    set({
+      items: newItems,
+      currentIndex: newCurrentIndex,
+      history: [],
+      unplayed: shuffle ? buildUnplayed(newItems.length, newCurrentIndex) : [],
     });
   },
 

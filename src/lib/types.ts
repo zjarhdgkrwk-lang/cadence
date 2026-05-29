@@ -45,6 +45,21 @@ export type QueueSource =
   | { type: "library" }
   | { type: "playlist"; playlistId: number; playlistName: string };
 
+// ── 태그 ───────────────────────────────────────────────────────────────────────
+export interface Tag {
+  id: number;
+  name: string;
+  color: string | null;
+}
+
+export type SearchField = "title" | "artist" | "album" | "tags";
+export type TagFilterMode = "and" | "or";
+
+export interface PlaylistItemOrder {
+  track_id: number;
+  position: number;
+}
+
 export interface FolderEntry {
   id: number;
   path: string;

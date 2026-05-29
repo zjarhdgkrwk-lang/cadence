@@ -362,6 +362,38 @@ describe("queueStore", () => {
     });
   });
 
+  // ── reorderItems ──────────────────────────────────────────
+  describe("reorderItems", () => {
+    it("items와 currentIndex를 업데이트한다", () => {
+      useQueueStore.setState({
+        items: T.slice(0, 5),
+        currentIndex: 0,
+        shuffle: false,
+        history: [],
+        unplayed: [],
+      });
+      const reordered = [T[1], T[2], T[3], T[4], T[0]];
+      useQueueStore.getState().reorderItems(reordered, 4);
+      const s = useQueueStore.getState();
+      expect(s.items).toEqual(reordered);
+      expect(s.currentIndex).toBe(4);
+    });
+
+    it("history와 unplayed를 초기화한다", () => {
+      useQueueStore.setState({
+        items: T.slice(0, 3),
+        currentIndex: 1,
+        shuffle: true,
+        history: [0],
+        unplayed: [2],
+      });
+      useQueueStore.getState().reorderItems([T[0], T[2], T[1]], 0);
+      const s = useQueueStore.getState();
+      expect(s.history).toHaveLength(0);
+      expect(s.unplayed).not.toContain(0);
+    });
+  });
+
   // ── setShuffle ─────────────────────────────────────────────
   describe("setShuffle", () => {
     it("켤 때 currentIndex 제외한 unplayed 풀을 구성한다", () => {

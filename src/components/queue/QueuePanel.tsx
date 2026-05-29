@@ -1,7 +1,9 @@
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useQueueStore } from "../../stores/queueStore";
 import { usePlayerStore } from "../../stores/playerStore";
 import { controller } from "../../lib/playerController";
 import { artUrl } from "../../lib/ipc";
+import { SortableTrackItem } from "../dnd/SortableTrackItem";
 
 function formatDuration(ms: number | null): string {
   if (!ms) return "--:--";
@@ -17,6 +19,9 @@ export function QueuePanel() {
 
   const sourceLabel =
     source.type === "playlist" ? `플레이리스트: ${source.playlistName}` : "라이브러리";
+
+  // Stable IDs for SortableContext: use index as slot identifier
+  const sortableIds = items.map((_, i) => i);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -41,80 +46,87 @@ export function QueuePanel() {
           </p>
         </div>
       ) : (
-        <ul className="flex-1 overflow-y-auto">
-          {items.map((track, idx) => {
-            const isCurrent = track.id === currentTrack?.id && idx === currentIndex;
-            const art = artUrl(track.art_cache_path);
-            return (
-              <li key={`${track.id}-${idx}`}>
-                <button
-                  className="w-full flex items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-[var(--color-surface-raised)]"
-                  style={{
-                    backgroundColor: isCurrent
-                      ? "var(--color-surface-raised)"
-                      : undefined,
-                  }}
-                  onClick={() => {
-                    const t = useQueueStore.getState().playIndex(idx);
-                    if (t) controller.playTrack(t);
-                  }}
-                >
-                  {/* Art / index */}
-                  <div className="w-6 flex-shrink-0 flex items-center justify-center">
-                    {art ? (
-                      <img
-                        src={art}
-                        alt=""
-                        width={24}
-                        height={24}
-                        className="rounded-sm object-cover"
-                        style={{ width: 24, height: 24 }}
-                      />
-                    ) : (
-                      <span
-                        className="text-xs tabular-nums"
-                        style={{
-                          color: isCurrent
-                            ? "var(--color-accent)"
-                            : "var(--color-fg-subtle)",
-                        }}
-                      >
-                        {idx + 1}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Title + artist */}
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className="text-sm truncate leading-tight"
+        <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+          <ul className="flex-1 overflow-y-auto">
+            {items.map((track, idx) => {
+              const isCurrent = track.id === currentTrack?.id && idx === currentIndex;
+              const art = artUrl(track.art_cache_path);
+              return (
+                <li key={`${track.id}-${idx}`}>
+                  <SortableTrackItem
+                    id={idx}
+                    data={{ type: "queue-item", index: idx, track: items[idx] }}
+                  >
+                    <button
+                      className="w-full flex items-center gap-3 px-2 py-2 text-left transition-colors hover:bg-[var(--color-surface-raised)]"
                       style={{
-                        color: isCurrent ? "var(--color-accent)" : "var(--color-fg)",
-                        fontWeight: isCurrent ? 600 : undefined,
+                        backgroundColor: isCurrent
+                          ? "var(--color-surface-raised)"
+                          : undefined,
+                      }}
+                      onClick={() => {
+                        const t = useQueueStore.getState().playIndex(idx);
+                        if (t) controller.playTrack(t);
                       }}
                     >
-                      {track.title}
-                    </p>
-                    <p
-                      className="text-xs truncate"
-                      style={{ color: "var(--color-fg-muted)" }}
-                    >
-                      {track.artist}
-                    </p>
-                  </div>
+                      {/* Art / index */}
+                      <div className="w-6 flex-shrink-0 flex items-center justify-center">
+                        {art ? (
+                          <img
+                            src={art}
+                            alt=""
+                            width={24}
+                            height={24}
+                            className="rounded-sm object-cover"
+                            style={{ width: 24, height: 24 }}
+                          />
+                        ) : (
+                          <span
+                            className="text-xs tabular-nums"
+                            style={{
+                              color: isCurrent
+                                ? "var(--color-accent)"
+                                : "var(--color-fg-subtle)",
+                            }}
+                          >
+                            {idx + 1}
+                          </span>
+                        )}
+                      </div>
 
-                  {/* Duration */}
-                  <span
-                    className="text-xs tabular-nums flex-shrink-0"
-                    style={{ color: "var(--color-fg-subtle)" }}
-                  >
-                    {formatDuration(track.duration_ms)}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                      {/* Title + artist */}
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className="text-sm truncate leading-tight"
+                          style={{
+                            color: isCurrent ? "var(--color-accent)" : "var(--color-fg)",
+                            fontWeight: isCurrent ? 600 : undefined,
+                          }}
+                        >
+                          {track.title}
+                        </p>
+                        <p
+                          className="text-xs truncate"
+                          style={{ color: "var(--color-fg-muted)" }}
+                        >
+                          {track.artist}
+                        </p>
+                      </div>
+
+                      {/* Duration */}
+                      <span
+                        className="text-xs tabular-nums flex-shrink-0"
+                        style={{ color: "var(--color-fg-subtle)" }}
+                      >
+                        {formatDuration(track.duration_ms)}
+                      </span>
+                    </button>
+                  </SortableTrackItem>
+                </li>
+              );
+            })}
+          </ul>
+        </SortableContext>
       )}
     </div>
   );

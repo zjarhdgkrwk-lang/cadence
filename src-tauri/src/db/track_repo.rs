@@ -285,6 +285,24 @@ const TRACK_SELECT: &str =
        replaygain_track_gain, replaygain_album_gain
      FROM tracks";
 
+/// t 별칭 버전 — search_tracks_v2에서 WHERE/JOIN 조건에 사용
+const TRACK_SELECT_T: &str =
+    "SELECT t.id, t.path, t.filename,
+       COALESCE(t.title_override, t.raw_title, t.filename) AS title,
+       COALESCE(t.artist_override, t.raw_artist, '') AS artist,
+       COALESCE(t.album_override, t.raw_album, '') AS album,
+       COALESCE(t.album_artist_override, t.raw_album_artist) AS album_artist,
+       COALESCE(t.genre_override, t.raw_genre) AS genre,
+       COALESCE(t.track_no_override, t.raw_track_no) AS track_no,
+       COALESCE(t.disc_no_override, t.raw_disc_no) AS disc_no,
+       COALESCE(t.year_override, t.raw_year) AS year,
+       t.duration_ms, t.bitrate, t.codec,
+       t.has_embedded_art, t.art_cache_path, t.dominant_color,
+       t.lrc_path, t.lrc_offset_ms,
+       t.lyrics_source, t.missing, t.date_added, t.last_played_at, t.play_count,
+       t.replaygain_track_gain, t.replaygain_album_gain
+     FROM tracks t";
+
 /// FTS5 전문 검색 (일반 텍스트) + 초성 LIKE 검색 자동 분기
 pub async fn search_tracks(
     pool: &SqlitePool,
@@ -365,4 +383,131 @@ pub async fn search_tracks(
 
         Ok(PageResult { tracks: rows, total: total.0 })
     }
+}
+
+/// 필드 필터 + 태그 AND/OR 필터를 지원하는 확장 검색.
+/// query가 비고 tag_ids도 비면 일반 get_tracks로 위임.
+pub async fn search_tracks_v2(
+    pool: &SqlitePool,
+    raw_query: &str,
+    fields: &[String],
+    tag_ids: &[i64],
+    tag_mode: &str,
+    offset: i64,
+    limit: i64,
+) -> Result<PageResult> {
+    let q = raw_query.trim();
+    let has_query = !q.is_empty();
+    let has_tags = !tag_ids.is_empty();
+
+    if !has_query && !has_tags {
+        return get_tracks(pool, "artist", "asc", offset, limit).await;
+    }
+
+    let is_chosung = has_query && is_chosung_only(q);
+
+    // FTS query string (필드 컬럼 필터 포함)
+    let fts_query: String = if has_query && !is_chosung {
+        let valid_fields: Vec<&str> = fields
+            .iter()
+            .filter_map(|f| match f.as_str() {
+                "title" | "artist" | "album" | "tags" => Some(f.as_str()),
+                _ => None,
+            })
+            .collect();
+        let escaped = escape_fts5(q);
+        if valid_fields.is_empty() || valid_fields.len() >= 4 {
+            escaped
+        } else {
+            format!("{{{}}} {}", valid_fields.join(" "), escaped)
+        }
+    } else {
+        String::new()
+    };
+
+    let chosung_pat: String = if is_chosung {
+        format!("%{}%", q)
+    } else {
+        String::new()
+    };
+
+    // IN 절 문자열 (i64이므로 SQL injection 위험 없음)
+    let tag_in: String = tag_ids.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(",");
+
+    // WHERE 절 조각 조립
+    let mut where_parts: Vec<String> = vec!["t.missing=0".into()];
+    if has_query {
+        if is_chosung {
+            where_parts.push(
+                "(t.chosung_title LIKE ? OR t.chosung_artist LIKE ?)".into(),
+            );
+        } else {
+            where_parts.push(
+                "t.id IN (SELECT rowid FROM tracks_fts WHERE tracks_fts MATCH ?)".into(),
+            );
+        }
+    }
+    if has_tags {
+        if tag_mode == "and" {
+            where_parts.push(format!(
+                "(SELECT COUNT(*) FROM track_tags WHERE track_id=t.id AND tag_id IN ({tag_in})) = {}",
+                tag_ids.len()
+            ));
+        } else {
+            where_parts.push(format!(
+                "t.id IN (SELECT track_id FROM track_tags WHERE tag_id IN ({tag_in}))"
+            ));
+        }
+    }
+    let where_clause = where_parts.join(" AND ");
+
+    // COUNT
+    let count_sql = format!("SELECT COUNT(*) FROM tracks t WHERE {where_clause}");
+    let total: i64 = if is_chosung {
+        sqlx::query_scalar(&count_sql)
+            .bind(&chosung_pat)
+            .bind(&chosung_pat)
+            .fetch_one(pool)
+            .await?
+    } else if has_query {
+        sqlx::query_scalar(&count_sql)
+            .bind(&fts_query)
+            .fetch_one(pool)
+            .await?
+    } else {
+        sqlx::query_scalar(&count_sql)
+            .fetch_one(pool)
+            .await?
+    };
+
+    // SELECT
+    let select_sql = format!(
+        "{TRACK_SELECT_T} WHERE {where_clause}
+         ORDER BY t.sort_artist ASC, t.sort_album ASC
+         LIMIT ? OFFSET ?"
+    );
+    let rows: Vec<TrackRow> = if is_chosung {
+        sqlx::query_as(&select_sql)
+            .bind(&chosung_pat)
+            .bind(&chosung_pat)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(pool)
+            .await?
+    } else if has_query {
+        sqlx::query_as(&select_sql)
+            .bind(&fts_query)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(pool)
+            .await?
+    } else {
+        sqlx::query_as(&select_sql)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(pool)
+            .await?
+    };
+
+    Ok(PageResult { tracks: rows, total })
 }

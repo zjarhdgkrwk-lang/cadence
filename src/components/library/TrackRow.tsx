@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { useDraggable } from "@dnd-kit/core";
 import type { Track } from "../../lib/types";
 import { artUrl } from "../../lib/ipc";
 import { useUIStore } from "../../stores/uiStore";
@@ -8,6 +9,8 @@ interface Props {
   index: number;
   style: React.CSSProperties;
   onDoubleClick?: (track: Track) => void;
+  onSelect?: (track: Track, e: React.MouseEvent) => void;
+  isSelected?: boolean;
 }
 
 function formatDuration(ms: number | null): string {
@@ -23,12 +26,16 @@ export const TrackRow = memo(function TrackRow({
   index,
   style,
   onDoubleClick,
+  onSelect,
+  isSelected,
 }: Props) {
   const artSrc = artUrl(track.art_cache_path);
-  // [진단] 첫 번째 행의 최종 src 확인
-  if (index === 0) {
-    console.log(`[TrackRow#0] art_cache_path=${track.art_cache_path} src=${artSrc}`);
-  }
+
+  // useDraggable for library→playlist drag. Activation distance 5px lets clicks through.
+  const { listeners, setNodeRef, isDragging } = useDraggable({
+    id: `lib:${track.id}`,
+    data: { type: "track", track },
+  });
 
   function handleContextMenu(e: React.MouseEvent) {
     e.preventDefault();
@@ -37,10 +44,21 @@ export const TrackRow = memo(function TrackRow({
 
   return (
     <div
-      style={style}
+      ref={setNodeRef}
+      style={{
+        ...style,
+        opacity: isDragging ? 0.4 : 1,
+        backgroundColor: isSelected
+          ? "var(--color-surface-raised)"
+          : undefined,
+        outline: isSelected ? "1px solid var(--color-border)" : undefined,
+      }}
       className="group flex items-center gap-3 px-4 select-none cursor-default"
       role="row"
       aria-rowindex={index + 1}
+      aria-selected={isSelected}
+      {...listeners}
+      onClick={(e) => onSelect?.(track, e)}
       onDoubleClick={() => onDoubleClick?.(track)}
       onContextMenu={handleContextMenu}
     >

@@ -22,11 +22,26 @@ interface UIState {
   rightPanel: RightPanel;
   selectedPlaylistId: number | null;
   contextMenu: ContextMenuState | null;
+
+  // ── 다중 선택 ────────────────────────────────────────────────────────────
+  selectedTrackIds: Set<number>;
+  lastClickedTrackId: number | null;
+
+  // ── 태그 다이얼로그 ──────────────────────────────────────────────────────
+  tagDialogOpen: boolean;
+  tagDialogTrackIds: number[];
+
+  // ── Actions ──────────────────────────────────────────────────────────────
   setTheme: (theme: Theme) => void;
   setView: (view: LibraryView) => void;
   setRightPanel: (panel: RightPanel) => void;
   setSelectedPlaylistId: (id: number | null) => void;
   setContextMenu: (menu: ContextMenuState | null) => void;
+  toggleSelectTrack: (id: number) => void;
+  selectRangeTrack: (id: number, tracks: Track[]) => void;
+  clearSelection: () => void;
+  openTagDialog: (trackIds: number[]) => void;
+  closeTagDialog: () => void;
   _resolveTheme: (mediaMatches: boolean) => void;
 }
 
@@ -55,6 +70,10 @@ export const useUIStore = create<UIState>()(
       rightPanel: null as RightPanel,
       selectedPlaylistId: null,
       contextMenu: null,
+      selectedTrackIds: new Set<number>(),
+      lastClickedTrackId: null,
+      tagDialogOpen: false,
+      tagDialogTrackIds: [],
 
       setView(view: LibraryView) {
         set({ currentView: view });
@@ -77,6 +96,46 @@ export const useUIStore = create<UIState>()(
           theme === "system" ? (getSystemDark() ? "dark" : "light") : theme;
         applyTheme(resolved);
         set({ theme, resolvedTheme: resolved });
+      },
+
+      toggleSelectTrack(id: number) {
+        const { selectedTrackIds } = get();
+        const next = new Set(selectedTrackIds);
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+        set({ selectedTrackIds: next, lastClickedTrackId: id });
+      },
+
+      selectRangeTrack(id: number, tracks: Track[]) {
+        const { lastClickedTrackId, selectedTrackIds } = get();
+        if (!lastClickedTrackId) {
+          const next = new Set(selectedTrackIds);
+          next.add(id);
+          set({ selectedTrackIds: next, lastClickedTrackId: id });
+          return;
+        }
+        const fromIdx = tracks.findIndex((t) => t.id === lastClickedTrackId);
+        const toIdx = tracks.findIndex((t) => t.id === id);
+        if (fromIdx === -1 || toIdx === -1) return;
+        const [lo, hi] = fromIdx <= toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx];
+        const next = new Set(selectedTrackIds);
+        for (let i = lo; i <= hi; i++) next.add(tracks[i].id);
+        set({ selectedTrackIds: next, lastClickedTrackId: id });
+      },
+
+      clearSelection() {
+        set({ selectedTrackIds: new Set(), lastClickedTrackId: null });
+      },
+
+      openTagDialog(trackIds: number[]) {
+        set({ tagDialogOpen: true, tagDialogTrackIds: trackIds });
+      },
+
+      closeTagDialog() {
+        set({ tagDialogOpen: false, tagDialogTrackIds: [] });
       },
 
       _resolveTheme(mediaMatches: boolean) {

@@ -1,7 +1,40 @@
 import { useEffect, useRef, useState } from "react";
+import { useDroppable } from "@dnd-kit/core";
 import { Plus, Check, X } from "lucide-react";
 import { usePlaylistStore } from "../../stores/playlistStore";
 import { useUIStore } from "../../stores/uiStore";
+
+function DroppablePlaylistBtn({
+  playlistId,
+  isActive,
+  children,
+  ...rest
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { playlistId: number; isActive: boolean }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `plDrop:${playlistId}`,
+    data: { type: "playlist", playlistId },
+  });
+
+  return (
+    <button
+      ref={setNodeRef}
+      className="w-full text-left text-sm px-2 py-1 rounded transition-colors hover:bg-[var(--color-surface-raised)]"
+      style={{
+        color: isActive ? "var(--color-fg)" : "var(--color-fg-muted)",
+        fontWeight: isActive ? 600 : undefined,
+        backgroundColor: isOver
+          ? "var(--color-accent-subtle, var(--color-surface-raised))"
+          : isActive
+          ? "var(--color-surface-raised)"
+          : undefined,
+        outline: isOver ? "1px dashed var(--color-accent)" : undefined,
+      }}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
+}
 
 export function PlaylistSection() {
   const playlists = usePlaylistStore((s) => s.playlists);
@@ -96,22 +129,9 @@ export function PlaylistSection() {
                 </button>
               </div>
             ) : (
-              <button
-                className="w-full text-left text-sm px-2 py-1 rounded transition-colors hover:bg-[var(--color-surface-raised)]"
-                style={{
-                  color:
-                    currentView === "playlist" && selectedPlaylistId === p.id
-                      ? "var(--color-fg)"
-                      : "var(--color-fg-muted)",
-                  fontWeight:
-                    currentView === "playlist" && selectedPlaylistId === p.id
-                      ? 600
-                      : undefined,
-                  backgroundColor:
-                    currentView === "playlist" && selectedPlaylistId === p.id
-                      ? "var(--color-surface-raised)"
-                      : undefined,
-                }}
+              <DroppablePlaylistBtn
+                playlistId={p.id}
+                isActive={currentView === "playlist" && selectedPlaylistId === p.id}
                 onClick={() => selectPlaylist(p.id)}
                 onDoubleClick={() => {
                   setRenamingId(p.id);
@@ -124,7 +144,7 @@ export function PlaylistSection() {
                 }
               >
                 {p.name}
-              </button>
+              </DroppablePlaylistBtn>
             )}
           </li>
         ))}

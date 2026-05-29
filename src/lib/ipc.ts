@@ -4,12 +4,16 @@ import type {
   FolderEntry,
   LoadedQueue,
   PageResult,
+  PlaylistItemOrder,
   Playlist,
   SaveQueuePayload,
   ScanComplete,
   ScanProgress,
+  SearchField,
   SortDir,
   SortField,
+  Tag,
+  TagFilterMode,
   Track,
 } from "./types";
 
@@ -161,6 +165,67 @@ export async function addTracksToPlaylist(playlistId: number, trackIds: number[]
 
 export async function removeTrackFromPlaylist(playlistId: number, trackId: number): Promise<void> {
   return invoke<void>("remove_track_from_playlist", { playlistId, trackId });
+}
+
+export async function reorderPlaylistItems(
+  playlistId: number,
+  newOrder: PlaylistItemOrder[],
+): Promise<void> {
+  return invoke<void>("reorder_playlist_items", { playlistId, newOrder });
+}
+
+// ── 태그 ──────────────────────────────────────────────────────────────────────
+
+export async function listTags(): Promise<Tag[]> {
+  return invoke<Tag[]>("list_tags");
+}
+
+export async function createTag(name: string, color?: string | null): Promise<Tag> {
+  return invoke<Tag>("create_tag", { name, color: color ?? null });
+}
+
+export async function renameTag(id: number, name: string): Promise<void> {
+  return invoke<void>("rename_tag", { id, name });
+}
+
+export async function setTagColor(id: number, color: string | null): Promise<void> {
+  return invoke<void>("set_tag_color", { id, color });
+}
+
+export async function deleteTag(id: number): Promise<void> {
+  return invoke<void>("delete_tag", { id });
+}
+
+export async function getTrackTags(trackId: number): Promise<Tag[]> {
+  return invoke<Tag[]>("get_track_tags", { trackId });
+}
+
+export async function assignTags(trackId: number, tagIds: number[]): Promise<void> {
+  return invoke<void>("assign_tags", { trackId, tagIds });
+}
+
+export async function bulkAssignTags(trackIds: number[], tagIds: number[]): Promise<void> {
+  return invoke<void>("bulk_assign_tags", { trackIds, tagIds });
+}
+
+// ── 검색 v2 ───────────────────────────────────────────────────────────────────
+
+export async function searchTracksV2(params: {
+  query?: string;
+  fields?: SearchField[];
+  tagIds?: number[];
+  tagMode?: TagFilterMode;
+  offset?: number;
+  limit?: number;
+}): Promise<PageResult> {
+  return invoke<PageResult>("search_tracks_v2", {
+    query: params.query ?? null,
+    fields: params.fields ?? null,
+    tagIds: params.tagIds ?? null,
+    tagMode: params.tagMode ?? null,
+    offset: params.offset ?? 0,
+    limit: params.limit ?? 200,
+  });
 }
 
 // ── アート サムネイル URL ────────────────────────────────────

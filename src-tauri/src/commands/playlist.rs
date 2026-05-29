@@ -5,6 +5,12 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tauri::State;
 
+#[derive(Debug, Deserialize)]
+pub struct PlaylistItemOrder {
+    pub track_id: i64,
+    pub position: i64,
+}
+
 fn now_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -98,7 +104,8 @@ SELECT t.id, t.path, t.filename,
   t.duration_ms, t.bitrate, t.codec,
   t.has_embedded_art, t.art_cache_path, t.dominant_color,
   t.lrc_path, t.lrc_offset_ms,
-  t.lyrics_source, t.missing, t.date_added, t.last_played_at, t.play_count
+  t.lyrics_source, t.missing, t.date_added, t.last_played_at, t.play_count,
+  t.replaygain_track_gain, t.replaygain_album_gain
 FROM tracks t
 JOIN playlist_items pi ON pi.track_id = t.id
 WHERE pi.playlist_id = ? AND t.missing = 0
@@ -194,6 +201,54 @@ pub async fn remove_track_from_playlist(
         .map_err(|e| e.to_string())?;
 
     tracing::info!("[playlist] 곡 제거: playlist_id={playlist_id} track_id={track_id}");
+    Ok(())
+}
+
+// ── 플레이리스트 순서 변경 ────────────────────────────────────────
+
+#[tauri::command]
+pub async fn reorder_playlist_items(
+    playlist_id: i64,
+    new_order: Vec<PlaylistItemOrder>,
+    state: State<'_, DbState>,
+) -> Result<(), String> {
+    if new_order.is_empty() {
+        return Ok(());
+    }
+    let pool = &state.0;
+    let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
+
+    sqlx::query("DELETE FROM playlist_items WHERE playlist_id=?")
+        .bind(playlist_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    for item in &new_order {
+        sqlx::query(
+            "INSERT INTO playlist_items (playlist_id, track_id, position) VALUES (?, ?, ?)",
+        )
+        .bind(playlist_id)
+        .bind(item.track_id)
+        .bind(item.position)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+    }
+
+    tx.commit().await.map_err(|e| e.to_string())?;
+
+    sqlx::query("UPDATE playlists SET updated_at=? WHERE id=?")
+        .bind(now_ms())
+        .bind(playlist_id)
+        .execute(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    tracing::info!(
+        "[playlist] 순서 변경: playlist_id={playlist_id} count={}",
+        new_order.len()
+    );
     Ok(())
 }
 

@@ -7,6 +7,7 @@ import { getAppInfo, loadQueue, getAppState } from "@/lib/ipc";
 import { initLogger } from "@/lib/logger";
 import { useQueueStore } from "@/stores/queueStore";
 import { usePlaylistStore } from "@/stores/playlistStore";
+import { useTagStore } from "@/stores/tagStore";
 import { controller } from "@/lib/playerController";
 
 // 가능한 한 일찍 인터셉터 설치 (모듈 평가 시점)
@@ -62,6 +63,7 @@ function App() {
     restore();
 
     usePlaylistStore.getState().loadPlaylists().catch(() => {});
+    useTagStore.getState().loadTags().catch(() => {});
 
     getAppInfo()
       .then((info) => {

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ListPlus, Play, Plus, Trash2 } from "lucide-react";
+import { ListPlus, Play, Plus, Tag, Trash2 } from "lucide-react";
 import { useUIStore } from "../../stores/uiStore";
 import { usePlaylistStore } from "../../stores/playlistStore";
 import { controller } from "../../lib/playerController";
@@ -63,6 +63,18 @@ export function ContextMenu() {
         icon={<Plus size={13} />}
         label="큐에 추가"
         onClick={() => { controller.addToQueueEnd(track); close(); }}
+      />
+      <MenuItem
+        icon={<Tag size={13} />}
+        label="태그 관리"
+        onClick={() => {
+          const { selectedTrackIds, openTagDialog } = useUIStore.getState();
+          const ids = selectedTrackIds.has(track.id)
+            ? [...selectedTrackIds]
+            : [track.id];
+          openTagDialog(ids);
+          close();
+        }}
       />
 
       {playlists.length > 0 && (

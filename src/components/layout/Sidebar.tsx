@@ -1,5 +1,6 @@
 import { FolderManager } from "../library/FolderManager";
 import { PlaylistSection } from "../playlists/PlaylistSection";
+import { TagFilterPanel } from "../tags/TagFilterPanel";
 import { useUIStore, type LibraryView } from "../../stores/uiStore";
 import { openLogFolder } from "../../lib/ipc";
 
@@ -72,6 +73,11 @@ export function Sidebar() {
         {/* 플레이리스트 */}
         <div className="border-b" style={{ borderColor: "var(--color-border)" }}>
           <PlaylistSection />
+        </div>
+
+        {/* 태그 필터 */}
+        <div className="border-b" style={{ borderColor: "var(--color-border)" }}>
+          <TagFilterPanel />
         </div>
 
         {/* 폴더 관리 */}

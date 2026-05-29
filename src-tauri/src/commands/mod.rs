@@ -2,6 +2,7 @@ pub mod library;
 pub mod player;
 pub mod playlist;
 pub mod scan;
+pub mod tag;
 
 use serde::Serialize;
 use tauri::Manager;
@@ -24,7 +25,7 @@ pub fn app_info(app: tauri::AppHandle) -> AppInfo {
     let log_dir = app
         .path()
         .app_log_dir()
-        .map(|p| p.join("logs").to_string_lossy().into_owned())
+        .map(|p| p.to_string_lossy().into_owned())
         .unwrap_or_else(|_| "<unknown>".into());
     AppInfo { version, db_path, log_dir }
 }
@@ -47,7 +48,6 @@ pub fn open_log_folder(app: tauri::AppHandle) -> Result<(), String> {
     let log_dir = app
         .path()
         .app_log_dir()
-        .map(|p| p.join("logs"))
         .map_err(|e| e.to_string())?;
 
     tracing::info!("[Cadence] 로그 폴더 열기 요청: {}", log_dir.display());

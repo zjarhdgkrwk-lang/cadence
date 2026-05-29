@@ -1,9 +1,11 @@
 import { useEffect } from "react";
 import { Play, Trash2 } from "lucide-react";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { usePlaylistStore } from "../../stores/playlistStore";
 import { useUIStore } from "../../stores/uiStore";
 import { controller } from "../../lib/playerController";
 import { artUrl } from "../../lib/ipc";
+import { SortableTrackItem } from "../dnd/SortableTrackItem";
 
 function formatDuration(ms: number | null): string {
   if (!ms) return "--:--";
@@ -47,6 +49,8 @@ export function PlaylistDetail() {
     setView("tracks");
   }
 
+  const sortableIds = (tracks ?? []).map((_, i) => i);
+
   return (
     <main
       className="flex-1 flex flex-col overflow-hidden"
@@ -80,10 +84,7 @@ export function PlaylistDetail() {
                 })
               }
               className="flex items-center gap-1.5 px-3 py-1.5 rounded text-sm transition-colors hover:opacity-80"
-              style={{
-                backgroundColor: "var(--color-accent)",
-                color: "#fff",
-              }}
+              style={{ backgroundColor: "var(--color-accent)", color: "#fff" }}
             >
               <Play size={14} />
               재생
@@ -103,9 +104,7 @@ export function PlaylistDetail() {
       {/* Track list */}
       {!tracks ? (
         <div className="flex items-center justify-center flex-1">
-          <p className="text-sm" style={{ color: "var(--color-fg-subtle)" }}>
-            로딩 중…
-          </p>
+          <p className="text-sm" style={{ color: "var(--color-fg-subtle)" }}>로딩 중…</p>
         </div>
       ) : tracks.length === 0 ? (
         <div className="flex items-center justify-center flex-1">
@@ -114,78 +113,85 @@ export function PlaylistDetail() {
           </p>
         </div>
       ) : (
-        <ul className="flex-1 overflow-y-auto py-1">
-          {tracks.map((track, idx) => {
-            const art = artUrl(track.art_cache_path);
-            return (
-              <li key={`${track.id}-${idx}`}>
-                <div
-                  className="group flex items-center gap-3 px-4 py-2 hover:bg-[var(--color-surface-raised)] cursor-default"
-                  onDoubleClick={() =>
-                    controller.replaceQueueAndPlay(tracks, idx, {
-                      type: "playlist",
-                      playlistId: playlist.id,
-                      playlistName: playlist.name,
-                    })
-                  }
-                >
-                  <div className="w-8 flex-shrink-0 flex items-center justify-center">
-                    {art ? (
-                      <img
-                        src={art}
-                        alt=""
-                        width={32}
-                        height={32}
-                        className="rounded-sm object-cover"
-                        style={{ width: 32, height: 32 }}
-                      />
-                    ) : (
+        <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+          <ul className="flex-1 overflow-y-auto py-1">
+            {tracks.map((track, idx) => {
+              const art = artUrl(track.art_cache_path);
+              return (
+                <li key={`${track.id}-${idx}`}>
+                  <SortableTrackItem
+                    id={idx}
+                    data={{ type: "playlist-item", playlistId: playlist.id, index: idx }}
+                  >
+                    <div
+                      className="group flex items-center gap-3 px-4 py-2 hover:bg-[var(--color-surface-raised)] cursor-default"
+                      onDoubleClick={() =>
+                        controller.replaceQueueAndPlay(tracks, idx, {
+                          type: "playlist",
+                          playlistId: playlist.id,
+                          playlistName: playlist.name,
+                        })
+                      }
+                    >
+                      <div className="w-8 flex-shrink-0 flex items-center justify-center">
+                        {art ? (
+                          <img
+                            src={art}
+                            alt=""
+                            width={32}
+                            height={32}
+                            className="rounded-sm object-cover"
+                            style={{ width: 32, height: 32 }}
+                          />
+                        ) : (
+                          <span
+                            className="text-xs tabular-nums"
+                            style={{ color: "var(--color-fg-subtle)" }}
+                          >
+                            {idx + 1}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className="text-sm font-medium truncate leading-tight"
+                          style={{ color: "var(--color-fg)" }}
+                        >
+                          {track.title}
+                        </p>
+                        <p
+                          className="text-xs truncate"
+                          style={{ color: "var(--color-fg-muted)" }}
+                        >
+                          {track.artist}
+                        </p>
+                      </div>
+
                       <span
-                        className="text-xs tabular-nums"
+                        className="text-xs tabular-nums flex-shrink-0"
                         style={{ color: "var(--color-fg-subtle)" }}
                       >
-                        {idx + 1}
+                        {formatDuration(track.duration_ms)}
                       </span>
-                    )}
-                  </div>
 
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className="text-sm font-medium truncate leading-tight"
-                      style={{ color: "var(--color-fg)" }}
-                    >
-                      {track.title}
-                    </p>
-                    <p
-                      className="text-xs truncate"
-                      style={{ color: "var(--color-fg-muted)" }}
-                    >
-                      {track.artist}
-                    </p>
-                  </div>
-
-                  <span
-                    className="text-xs tabular-nums flex-shrink-0"
-                    style={{ color: "var(--color-fg-subtle)" }}
-                  >
-                    {formatDuration(track.duration_ms)}
-                  </span>
-
-                  <button
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[var(--color-border)] transition-opacity"
-                    onClick={() =>
-                      removeTrack(playlist.id, track.id).catch(() => {})
-                    }
-                    title="플레이리스트에서 제거"
-                    aria-label="플레이리스트에서 제거"
-                  >
-                    <Trash2 size={13} style={{ color: "var(--color-fg-muted)" }} />
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                      <button
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[var(--color-border)] transition-opacity"
+                        onClick={() =>
+                          removeTrack(playlist.id, track.id).catch(() => {})
+                        }
+                        title="플레이리스트에서 제거"
+                        aria-label="플레이리스트에서 제거"
+                      >
+                        <Trash2 size={13} style={{ color: "var(--color-fg-muted)" }} />
+                      </button>
+                    </div>
+                  </SortableTrackItem>
+                </li>
+              );
+            })}
+          </ul>
+        </SortableContext>
       )}
     </main>
   );
