@@ -31,10 +31,15 @@ interface UIState {
   tagDialogOpen: boolean;
   tagDialogTrackIds: number[];
 
+  // ── 전체 화면 재생 뷰 (Phase 10 예정) ────────────────────────────────────
+  // Esc 우선순위: nowPlayingExpanded → rightPanel 순으로 닫음
+  nowPlayingExpanded: boolean;
+
   // ── Actions ──────────────────────────────────────────────────────────────
   setTheme: (theme: Theme) => void;
   setView: (view: LibraryView) => void;
   setRightPanel: (panel: RightPanel) => void;
+  setNowPlayingExpanded: (v: boolean) => void;
   setSelectedPlaylistId: (id: number | null) => void;
   setContextMenu: (menu: ContextMenuState | null) => void;
   toggleSelectTrack: (id: number) => void;
@@ -74,6 +79,7 @@ export const useUIStore = create<UIState>()(
       lastClickedTrackId: null,
       tagDialogOpen: false,
       tagDialogTrackIds: [],
+      nowPlayingExpanded: false,
 
       setView(view: LibraryView) {
         set({ currentView: view });
@@ -81,6 +87,10 @@ export const useUIStore = create<UIState>()(
 
       setRightPanel(panel: RightPanel) {
         set({ rightPanel: panel });
+      },
+
+      setNowPlayingExpanded(v: boolean) {
+        set({ nowPlayingExpanded: v });
       },
 
       setSelectedPlaylistId(id: number | null) {

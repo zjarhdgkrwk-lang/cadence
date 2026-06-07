@@ -3,6 +3,9 @@ import { AppShell } from "@/components/layout/AppShell";
 import { initThemeListeners } from "@/stores/uiStore";
 import { useAudioEngine } from "@/hooks/useAudioEngine";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useSmtc } from "@/hooks/useSmtc";
+import { useMediaKeyListener } from "@/hooks/useMediaKeyListener";
+import { useOutputDeviceWatcher } from "@/hooks/useOutputDeviceWatcher";
 import { getAppInfo, loadQueue, getAppState } from "@/lib/ipc";
 import { initLogger } from "@/lib/logger";
 import { useQueueStore } from "@/stores/queueStore";
@@ -16,6 +19,9 @@ initLogger();
 function App() {
   useAudioEngine();
   useKeyboardShortcuts();
+  useSmtc();
+  useMediaKeyListener();
+  useOutputDeviceWatcher();
 
   useEffect(() => {
     const cleanupTheme = initThemeListeners();

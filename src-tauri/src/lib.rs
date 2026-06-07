@@ -1,41 +1,39 @@
 mod commands;
 mod db;
 mod logging;
+mod media_controls;
 mod scan;
 mod state;
 
+// output_watcher는 Windows 전용 빌드에서만 컴파일
+#[cfg(target_os = "windows")]
+mod output_watcher;
+
 use state::{DbState, LogState};
-use tauri::Manager;
+use tauri::{Manager, WindowEvent};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        // 창 위치·크기를 종료 시 저장, 다음 시작 시 복원
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
-            // ── 로깅 초기화 (DB보다 먼저) ────────────────────────────
-            let log_dir = app
-                .path()
-                .app_log_dir()
-                .expect("app_log_dir 없음");
+            // ── 로깅 초기화 ───────────────────────────────────────────────────
+            let log_dir = app.path().app_log_dir().expect("app_log_dir 없음");
             let (log_file_hint, log_guard) = logging::init(&log_dir);
             app.manage(LogState(log_guard));
-
             tracing::info!(
                 log_dir = %log_dir.display(),
-                "[Cadence] 로그 위치: {} (일별 롤링, 최근 7일 보관)",
+                "[Cadence] 로그 위치: {} (일별 롤링, 7일 보관)",
                 log_file_hint.display()
             );
 
-            // ── DB 초기화 ────────────────────────────────────────────
-            let db_dir = app
-                .path()
-                .app_data_dir()
-                .expect("app_data_dir 없음");
+            // ── DB 초기화 ─────────────────────────────────────────────────────
+            let db_dir = app.path().app_data_dir().expect("app_data_dir 없음");
             let db_path = db_dir.join("cadence.db");
-
             std::fs::create_dir_all(&db_dir).expect("app_data_dir 생성 실패");
-
             tracing::info!(db_path = %db_path.display(), "[db] DB 경로");
 
             let opts = sqlx::sqlite::SqliteConnectOptions::new()
@@ -52,19 +50,42 @@ pub fn run() {
                     Ok(()) => tracing::info!("[db] 마이그레이션 완료"),
                     Err(e) => panic!("마이그레이션 실패: {e}"),
                 }
-                // Phase 3에서 추가됐으나 마이그레이션이 빠진 컬럼 보정.
-                // PRAGMA로 존재 여부 확인 후 없을 때만 ALTER — 기존/새 DB 모두 안전.
                 ensure_tracks_columns(&pool).await;
                 pool
             });
-
             app.manage(DbState(pool));
+
+            // ── SMTC / 미디어 키 초기화 ──────────────────────────────────────
+            let window = app
+                .get_webview_window("main")
+                .expect("main 창이 없음");
+
+            let smtc_state = media_controls::init(app.handle()); // HWND는 init 내부에서 추출
+            app.manage(smtc_state);
+
+            // ── 출력 장치 watcher (Windows 전용) ─────────────────────────────
+            #[cfg(target_os = "windows")]
+            output_watcher::start(app.handle().clone());
+
+            // ── 창 닫기 = 앱 종료 ───────────────────────────────────────────
+            // v1 정책: 창 X 버튼 클릭 시 앱을 즉시 종료. 트레이 상주는 v1 비범위.
+            // (SSOT §3.9 참조: 트레이 숨김은 사용성 문제로 비범위 이동)
+            let app_handle_close = app.handle().clone();
+            window.on_window_event(move |event| {
+                if let WindowEvent::CloseRequested { .. } = event {
+                    tracing::info!("[app] exit on close requested");
+                    app_handle_close.exit(0);
+                }
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             commands::app_info,
             commands::log_frontend,
             commands::open_log_folder,
+            media_controls::update_smtc_metadata,
+            media_controls::update_smtc_playback,
             commands::scan::add_folder,
             commands::scan::remove_folder,
             commands::scan::list_folders,
@@ -100,9 +121,8 @@ pub fn run() {
         .expect("error while running tauri application");
 }
 
+
 /// Phase 3에서 추가됐으나 Migration 001에서 빠진 chosung 컬럼 보정.
-/// PRAGMA table_info로 존재 여부 확인 후 없을 때만 ALTER TABLE 실행.
-/// 기존 DB(컬럼 없음)와 새 DB(동일하게 없음) 모두 안전하게 처리한다.
 async fn ensure_tracks_columns(pool: &sqlx::SqlitePool) {
     let rows = match sqlx::query("PRAGMA table_info(tracks)")
         .fetch_all(pool)
@@ -128,8 +148,6 @@ async fn ensure_tracks_columns(pool: &sqlx::SqlitePool) {
                 Ok(_) => tracing::info!("[db] tracks.{col} 컬럼 추가"),
                 Err(e) => tracing::error!("[db] tracks.{col} 추가 실패: {e}"),
             }
-        } else {
-            tracing::debug!("[db] tracks.{col} 이미 존재 — 스킵");
         }
     }
 }

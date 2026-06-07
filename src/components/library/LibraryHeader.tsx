@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { ChevronUp, ChevronDown, Search, X } from "lucide-react";
 import { useLibraryStore } from "../../stores/libraryStore";
 import { useTagStore } from "../../stores/tagStore";
@@ -40,6 +40,13 @@ export function LibraryHeader() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Ctrl+F 단축키 → 검색 입력 포커스 (useKeyboardShortcuts에서 이벤트 dispatch)
+  useEffect(() => {
+    const handler = () => inputRef.current?.focus();
+    window.addEventListener("cadence:search-focus", handler);
+    return () => window.removeEventListener("cadence:search-focus", handler);
+  }, []);
 
   // Partial tag at end of input → drives autocomplete dropdown.
   const partial = partialHashAt(inputValue); // null = no #word at end

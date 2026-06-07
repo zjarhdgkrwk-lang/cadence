@@ -228,6 +228,40 @@ export async function searchTracksV2(params: {
   });
 }
 
+// ── SMTC (System Media Transport Controls) ───────────────────────────────────
+
+export interface SmtcMetadataPayload {
+  title: string;
+  artist: string;
+  album: string;
+  artPath: string | null;
+  durationMs: number | null;
+}
+
+/** SMTC 메타데이터 갱신 (트랙 변경 시 즉시 호출) */
+export async function updateSmtcMetadata(p: SmtcMetadataPayload): Promise<void> {
+  // Tauri IPC: Rust Option<u64>는 JS number(null-safe integer range)로 직렬화.
+  // BigInt 사용 시 Tauri IPC 직렬화 실패로 조용히 무시되므로 사용 금지.
+  return invoke<void>("update_smtc_metadata", {
+    title: p.title,
+    artist: p.artist,
+    album: p.album,
+    artPath: p.artPath,
+    durationMs: p.durationMs != null ? Math.round(p.durationMs) : null,
+  });
+}
+
+/** SMTC 재생 상태 갱신 (상태 변경 즉시, 위치는 ~1초 스로틀) */
+export async function updateSmtcPlayback(p: {
+  status: "playing" | "paused" | "stopped";
+  positionMs: number | null;
+}): Promise<void> {
+  return invoke<void>("update_smtc_playback", {
+    status: p.status,
+    positionMs: p.positionMs != null ? Math.round(p.positionMs) : null,
+  });
+}
+
 // ── アート サムネイル URL ────────────────────────────────────
 let _artUrlLoggedOnce = false;
 

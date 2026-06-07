@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useLibraryStore } from "../../stores/libraryStore";
 import { useUIStore } from "../../stores/uiStore";
@@ -14,6 +14,9 @@ export function TrackList() {
   const selectedTrackIds = useUIStore((s) => s.selectedTrackIds);
   const { toggleSelectTrack, selectRangeTrack, clearSelection } = useUIStore.getState();
   const parentRef = useRef<HTMLDivElement>(null);
+
+  // ── 키보드 네비게이션 상태 ──────────────────────────────────────────────────
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
 
   const handleDoubleClick = useCallback(
     (track: Track) => {
@@ -44,6 +47,7 @@ export function TrackList() {
     overscan: 10,
   });
 
+  // ── 무한 스크롤 ────────────────────────────────────────────────────────────
   useEffect(() => {
     const el = parentRef.current;
     if (!el) return;
@@ -59,14 +63,63 @@ export function TrackList() {
     return () => el.removeEventListener("scroll", handler);
   }, [loadMore, isLoadingMore]);
 
+  // ── 포커스된 아이템이 바뀌면 스크롤 ────────────────────────────────────────
+  useEffect(() => {
+    if (focusedIndex !== null) {
+      rowVirtualizer.scrollToIndex(focusedIndex, { behavior: "smooth" });
+    }
+  }, [focusedIndex, rowVirtualizer]);
+
+  // ── 트랙 목록 변경 시 포커스 리셋 ─────────────────────────────────────────
+  useEffect(() => {
+    setFocusedIndex(null);
+  }, [tracks]);
+
+  // ── 컨테이너 키보드 핸들러 ────────────────────────────────────────────────
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (tracks.length === 0) return;
+
+      if (e.code === "ArrowDown" || e.code === "ArrowUp") {
+        // ↑/↓ — 리스트 내비게이션. stopPropagation으로 전역 볼륨 단축키 차단.
+        e.preventDefault();
+        e.stopPropagation();
+        setFocusedIndex((prev) => {
+          const current = prev ?? -1;
+          const next =
+            e.code === "ArrowDown"
+              ? Math.min(current + 1, tracks.length - 1)
+              : Math.max(current - 1, 0);
+          return next;
+        });
+
+      } else if (e.code === "Enter" && focusedIndex !== null) {
+        e.preventDefault();
+        e.stopPropagation();
+        const track = tracks[focusedIndex];
+        if (track) {
+          controller.replaceQueueAndPlay([...tracks], focusedIndex);
+        }
+
+      } else if (e.code === "ArrowRight" || e.code === "ArrowLeft") {
+        // →/← — 전역 탐색 단축키에 위임 (stopPropagation 하지 않음)
+      }
+    },
+    [tracks, focusedIndex]
+  );
+
   const items = rowVirtualizer.getVirtualItems();
 
   return (
     <div
       ref={parentRef}
-      className="flex-1 overflow-y-auto"
+      className="flex-1 overflow-y-auto focus:outline-none"
       style={{ contain: "strict" }}
-      role="rowgroup"
+      role="listbox"
+      aria-label="트랙 목록"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      onBlur={() => setFocusedIndex(null)}
     >
       {tracks.length === 0 ? (
         <div
@@ -83,6 +136,7 @@ export function TrackList() {
           {items.map((virtualRow) => {
             const track = tracks[virtualRow.index];
             if (!track) return null;
+            const isFocused = focusedIndex === virtualRow.index;
             return (
               <TrackRow
                 key={track.id}
@@ -95,6 +149,9 @@ export function TrackList() {
                   width: "100%",
                   height: `${ROW_HEIGHT}px`,
                   transform: `translateY(${virtualRow.start}px)`,
+                  // 키보드 포커스 링 (마우스 선택과 구별되는 파란 윤곽선)
+                  outline: isFocused ? "2px solid var(--color-accent, #6366f1)" : undefined,
+                  outlineOffset: isFocused ? "-2px" : undefined,
                 }}
                 onDoubleClick={handleDoubleClick}
                 onSelect={handleSelect}
